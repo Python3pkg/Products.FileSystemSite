@@ -12,7 +12,7 @@
 ##############################################################################
 """ Views of filesystem directories as folders.
 
-$Id: DirectoryView.py,v 1.2 2003/02/10 14:50:53 jw Exp $
+$Id: DirectoryView.py,v 1.3 2003/09/23 08:20:11 gotcha Exp $
 """
 
 import Globals
@@ -20,7 +20,7 @@ from Globals import HTMLFile, Persistent, package_home, DTMLFile
 import os
 from os import path, listdir, stat
 from Acquisition import aq_inner, aq_parent, aq_base
-from string import split, rfind, strip, join
+from string import rfind, strip, join
 from App.Common import package_home
 from OFS.ObjectManager import bad_id
 from OFS.Folder import Folder
@@ -91,7 +91,7 @@ class DirectoryInformation:
             lines = f.readlines()
             f.close()
             for line in lines:
-                try: obname, meta_type = split(line, ':')
+                try: obname, meta_type = line.split(':')
                 except: pass
                 else:
                     types[strip(obname)] = strip(meta_type)
@@ -110,7 +110,7 @@ class DirectoryInformation:
             f.close()
             props = {}
             for line in lines:
-                try: key, value = split(line, '=')
+                try: key, value = line.split('=')
                 except: pass
                 else:
                     props[strip(key)] = strip(value)
@@ -458,6 +458,27 @@ class DirectoryViewSurrogate (Folder):
         if REQUEST is not None:
             REQUEST['RESPONSE'].redirect( '%s/manage_propertiesForm'
                                         % self.absolute_url() )
+    
+    security.declareProtected(Permissions.ViewManagementScreens,
+                              'manage_doCustomize')
+    def manage_doCustomize( self, folder_path, REQUEST=None, root=None):
+        """
+            Recursive copy to folder.
+        """
+        id = self.getId()
+        fpath = tuple(folder_path.split('/'))
+        if root is None:
+            rootFolder = getToolByName(self,'portal_skins') 
+        else:
+            rootFolder = root
+        folder = rootFolder.restrictedTraverse(fpath)
+        folder.manage_addFolder(id)
+        items = self.objectValues()
+        for item in items:
+            item.manage_doCustomize(id, root=folder)
+        if REQUEST is not None:
+            REQUEST['RESPONSE'].redirect( '%s/%s/manage_main'
+                                        % (folder.absolute_url(), id) )
     
     security.declareProtected(AccessContentsInformation,
                               'getCustomizableObject')

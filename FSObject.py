@@ -12,10 +12,9 @@
 ##############################################################################
 """ Customizable objects that come from the filesystem (base class).
 
-$Id: FSObject.py,v 1.3 2003/02/10 14:51:43 jw Exp $
+$Id: FSObject.py,v 1.4 2003/09/23 08:20:11 gotcha Exp $
 """
 
-from string import split
 from os import path, stat
 
 import Acquisition, Globals
@@ -62,7 +61,7 @@ class FSObject(Acquisition.Implicit, Item):
 
     security.declareProtected(Permissions.ViewManagementScreens,
         'manage_doCustomize')
-    def manage_doCustomize(self, folder_path, RESPONSE=None):
+    def manage_doCustomize(self, folder_path, RESPONSE=None, root=None):
         """Makes a ZODB Based clone with the same data.
 
         Calls _createZODBClone for the actual work.
@@ -71,9 +70,12 @@ class FSObject(Acquisition.Implicit, Item):
         obj = self._createZODBClone()
         
         id = obj.getId()
-        fpath = tuple(split(folder_path, '/'))
-        portal_skins = getToolByName(self,'portal_skins') 
-        folder = portal_skins.restrictedTraverse(fpath)
+        fpath = tuple(folder_path.split('/'))
+        if root is None:
+            rootFolder = getToolByName(self,'portal_skins') 
+        else:
+            rootFolder = root
+        folder = rootFolder.restrictedTraverse(fpath)
         folder._verifyObjectPaste(obj, validate_src=0)
         folder._setObject(id, obj)
 
