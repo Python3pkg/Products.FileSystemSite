@@ -12,7 +12,7 @@
 ##############################################################################
 """ Customizable objects that come from the filesystem (base class).
 
-$Id: FSObject.py,v 1.2 2003/02/10 14:50:53 jw Exp $
+$Id: FSObject.py,v 1.3 2003/02/10 14:51:43 jw Exp $
 """
 
 from string import split
@@ -99,10 +99,10 @@ class FSObject(Acquisition.Implicit, Item):
     def _updateFromFS(self):
         
         parsed = self._parsed
-        from zLOG import LOG, INFO
+        #from zLOG import LOG, INFO
         import os
         path = "..." + os.sep.join(expandpath(self._filepath).split(os.sep)[-3:])
-        LOG('_updateFromFS', INFO, "%s already parsed: %s" %(path, parsed))
+        #LOG('_updateFromFS', INFO, "%s already parsed: %s" %(path, parsed))
         if not parsed or Globals.DevelopmentMode:
             fp = expandpath(self._filepath)
             try:    mtime=stat(fp)[8]
