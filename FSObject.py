@@ -12,9 +12,10 @@
 ##############################################################################
 """ Customizable objects that come from the filesystem (base class).
 
-$Id: FSObject.py,v 1.4 2003/09/23 08:20:11 gotcha Exp $
+$Id: FSObject.py,v 1.5 2003/10/24 12:25:21 philikon Exp $
 """
 
+from string import split
 from os import path, stat
 
 import Acquisition, Globals
@@ -23,9 +24,13 @@ from OFS.SimpleItem import Item
 from DateTime import DateTime
 
 from utils import expandpath, getToolByName
-import Permissions
+from Permissions import View
+from Permissions import ViewManagementScreens
+from Permissions import ManagePortal
 
-class FSObject(Acquisition.Implicit, Item):
+from OFS.Cache import Cacheable
+
+class FSObject(Acquisition.Implicit, Item, Cacheable):
     """FSObject is a base class for all filesystem based look-alikes.
     
     Subclasses of this class mimic ZODB based objects like Image and
@@ -37,7 +42,7 @@ class FSObject(Acquisition.Implicit, Item):
     title = ''
 
     security = ClassSecurityInfo()
-    security.declareObjectProtected(Permissions.View)
+    security.declareObjectProtected(View)
 
     _file_mod_time = 0
     _parsed = 0
@@ -50,6 +55,10 @@ class FSObject(Acquisition.Implicit, Item):
             if fullname and properties.get('keep_extension', 0):
                 id = fullname
 
+            cache = properties.get('cache')
+            if cache:
+                self.ZCacheable_setManagerId(cache)
+
         self.id = id
         self.__name__ = id # __name__ is used in traceback reporting
         self._filepath = filepath
@@ -59,8 +68,7 @@ class FSObject(Acquisition.Implicit, Item):
         except: pass
         self._readFile(0)
 
-    security.declareProtected(Permissions.ViewManagementScreens,
-        'manage_doCustomize')
+    security.declareProtected(ViewManagementScreens, 'manage_doCustomize')
     def manage_doCustomize(self, folder_path, RESPONSE=None, root=None):
         """Makes a ZODB Based clone with the same data.
 
@@ -70,9 +78,9 @@ class FSObject(Acquisition.Implicit, Item):
         obj = self._createZODBClone()
         
         id = obj.getId()
-        fpath = tuple(folder_path.split('/'))
+        fpath = tuple(split(folder_path, '/'))
         if root is None:
-            rootFolder = getToolByName(self,'portal_skins') 
+            rootFolder = getToolByName(self,'portal_skins')
         else:
             rootFolder = root
         folder = rootFolder.restrictedTraverse(fpath)
@@ -85,7 +93,7 @@ class FSObject(Acquisition.Implicit, Item):
 
     def _createZODBClone(self):
         """Create a ZODB (editable) equivalent of this object."""
-        raise NotImplemented, "This should be implemented in a subclass."
+        raise NotImplementedError, "This should be implemented in a subclass."
 
     def _readFile(self, reparse):
         """Read the data from the filesystem.
@@ -94,33 +102,30 @@ class FSObject(Acquisition.Implicit, Item):
         data if necessary.  'reparse' is set when reading the second
         time and beyond.
         """
-        raise NotImplemented, "This should be implemented in a subclass."
+        raise NotImplementedError, "This should be implemented in a subclass."
 
     # Refresh our contents from the filesystem if that is newer and we are
     # running in debug mode.
     def _updateFromFS(self):
-        
         parsed = self._parsed
-        #from zLOG import LOG, INFO
-        import os
-        path = "..." + os.sep.join(expandpath(self._filepath).split(os.sep)[-3:])
-        #LOG('_updateFromFS', INFO, "%s already parsed: %s" %(path, parsed))
         if not parsed or Globals.DevelopmentMode:
             fp = expandpath(self._filepath)
             try:    mtime=stat(fp)[8]
             except: mtime=0
             if not parsed or mtime != self._file_mod_time:
+                # if we have to read the file again, remove the cache
+                self.ZCacheable_invalidate()
                 self._readFile(1)
-                self._parsed = 1
                 self._file_mod_time = mtime
+                self._parsed = 1
 
-    security.declareProtected(Permissions.View, 'get_size')
+    security.declareProtected(View, 'get_size')
     def get_size(self):
         """Get the size of the underlying file."""
         fp = expandpath(self._filepath)
         return path.getsize(fp)
 
-    security.declareProtected(Permissions.View, 'getModTime')
+    security.declareProtected(View, 'getModTime')
     def getModTime(self):
         """Return the last_modified date of the file we represent.
 
@@ -129,8 +134,7 @@ class FSObject(Acquisition.Implicit, Item):
         self._updateFromFS()
         return DateTime(self._file_mod_time)
 
-    security.declareProtected(Permissions.ViewManagementScreens,
-        'getObjectFSPath')
+    security.declareProtected(ViewManagementScreens, 'getObjectFSPath')
     def getObjectFSPath(self):
         """Return the path of the file we represent"""
         self._updateFromFS()
@@ -177,8 +181,7 @@ class BadFile( FSObject ):
     security = ClassSecurityInfo()
 
     showError = Globals.HTML( BAD_FILE_VIEW )
-    security.declareProtected( Permissions.ManagePortal
-                             , 'manage_showError' )
+    security.declareProtected(ManagePortal, 'manage_showError')
     def manage_showError( self, REQUEST ):
         """
         """

@@ -2,28 +2,55 @@ import unittest
 import Zope
 
 class DummyCachingManager:
-    def getHTTPCachingHeaders( self, content, view_name, keywords ):
+    def getHTTPCachingHeaders( self, content, view_name, keywords, time=None ):
         return ( ( 'foo', 'Foo' ), ( 'bar', 'Bar' ) )
 
-from Products.CMFCore.tests.base.testcase import RequestTest, SecurityTest
+from Products.FileSystemSite.tests.base.testcase import RequestTest, SecurityTest, FSDVTest
 
-class FSPTMaker:
+class FSPTMaker(FSDVTest):
 
     def _makeOne( self, id, filename ):
 
-        from Products.CMFCore.FSPageTemplate import FSPageTemplate
-        from Products.CMFCore.tests.test_DirectoryView import skin_path_name
+        from Products.FileSystemSite.FSPageTemplate import FSPageTemplate
         from os.path import join
 
-        return FSPageTemplate( id, join( skin_path_name, filename ) )
+        return FSPageTemplate( id, join( self.skin_path_name, filename ) )
 
 class FSPageTemplateTests( RequestTest, FSPTMaker ):
+
+    def setUp(self):
+        FSPTMaker.setUp(self)
+        RequestTest.setUp(self)
+    
+    def tearDown(self):
+        RequestTest.tearDown(self)
+        FSPTMaker.tearDown(self)
 
     def test_Call( self ):
 
         script = self._makeOne( 'testPT', 'testPT.pt' )
         script = script.__of__(self.root)
         self.assertEqual(script(),'foo\n')
+        
+    def test_ContentType(self):
+        script = self._makeOne( 'testXMLPT', 'testXMLPT.pt' )
+        script = script.__of__(self.root)
+        script()
+        self.assertEqual(script.content_type, 'text/xml')
+        self.assertEqual(self.RESPONSE.getHeader('content-type'), 'text/xml')
+        # purge RESPONSE Content-Type header for new test
+        del self.RESPONSE.headers['content-type']
+        script = self._makeOne( 'testPT', 'testPT.pt' )
+        script = script.__of__(self.root)
+        script()
+        self.assertEqual(script.content_type, 'text/html')
+        self.assertEqual(self.RESPONSE.getHeader('content-type'), 'text/html')
+
+    def test_ContentTypeOverride(self):
+        script = self._makeOne( 'testPT_utf8', 'testPT_utf8.pt' )
+        script = script.__of__(self.root)
+        script()
+        self.assertEqual(self.RESPONSE.getHeader('content-type'), 'text/html; charset=utf-8')
 
     def test_BadCall( self ):
 
@@ -57,6 +84,7 @@ class FSPageTemplateCustomizationTests( SecurityTest, FSPTMaker ):
 
         from OFS.Folder import Folder
 
+        FSPTMaker.setUp(self)
         SecurityTest.setUp( self )
 
         self.root._setObject( 'portal_skins', Folder( 'portal_skins' ) )
@@ -87,6 +115,9 @@ class FSPageTemplateCustomizationTests( SecurityTest, FSPTMaker ):
         customized = self.custom.testPT
         self.failIf( customized.expand )
 
+    def tearDown(self):
+        SecurityTest.tearDown(self)
+        FSPTMaker.tearDown(self)
 
 def test_suite():
     return unittest.TestSuite((

@@ -13,30 +13,26 @@
 </dtml-let>
 <dtml-var manage_tabs>
 
-  <FORM ACTION="manage_doCustomize" METHOD="POST">
-    <TABLE CELLSPACING="2">
-      <TR>
-	<TH ALIGN="LEFT" VALIGN="TOP" class="form-label">Id</TH>
-	<TD ALIGN="LEFT" VALIGN="TOP" class="form-element">&dtml-getId;</TD>
-      </TR>
+<FORM ACTION="manage_doCustomize" METHOD="POST">
+  <TABLE CELLSPACING="2">
+    <TR>
+      <TH ALIGN="LEFT" VALIGN="TOP" class="form-label">Id</STRONG></TH>
+      <TD ALIGN="LEFT" VALIGN="TOP" class="form-element"><dtml-var getId></TD>
+    </TR>
+    <TR>
+      <TH ALIGN="LEFT" VALIGN="TOP" class="form-label">Content Type</TH>
+      <TD ALIGN="LEFT" VALIGN="TOP" class="form-element">&dtml-getContentType;</TD>
+    </TR>
+    <TR>
+      <TH ALIGN="LEFT" VALIGN="TOP" class="form-label">Size</TH>
+      <TD ALIGN="LEFT" VALIGN="TOP" class="form-element"><dtml-var get_size thousands_commas> bytes</TD>
+    </TR>
+    <TR>
+      <TH ALIGN="LEFT" VALIGN="TOP" class="form-label">Last modified</TH>
+      <TD ALIGN="LEFT" VALIGN="TOP" class="form-element">&dtml-getModTime;</TD>
+    </TR>
       <tr>
 	<th align="left" valign="top" class="form-label">
-        <em>Size</em>
-        </th>
-	<td align="left" valign="top" class="form-element">
-        <dtml-var get_size thousands_commas> bytes
-	</td>
-      </tr>
-      <tr>
-	<th align="left" valign="top" class="form-label">
-        <em>Last modified</em>
-        </th>
-	<td align="left" valign="top" class="form-element">
-        &dtml-getModTime;
-	</td>
-      </tr>
-      <tr>
-	<th align="left" valign="top"  class="form-label">
         <em>Source file</em>
         </th>
 	<td align="left" valign="top" class="form-element">
@@ -49,18 +45,17 @@
         </th>
         <td align="left" valign="top" class="form-element">
           <em>Select a destination folder and press the button
-          to make a copy of this template that can be customized.</em><br>
+          to make a copy of this method that can be customized.</em><br>
           <select name="folder_path" size="1">
-            <dtml-in expr="listCustFolderPaths('Page Template')">
+            <dtml-in expr="listCustFolderPaths('File')">
               <option value="&dtml-sequence-key;">&dtml-sequence-item;</option>
             </dtml-in>
           </select>
           <input type="submit" name="submit" value=" Customize ">
         </td>
       </tr>
-    </TABLE>
-  </FORM>
-<table border="1" bgcolor="#cccccc"><tr><td>
-<pre><dtml-var read html_quote></pre>
-</td></tr></table>
-<dtml-var manage_page_footer>
+  </TABLE>
+</FORM>
+</BODY>
+</HTML>
+ 

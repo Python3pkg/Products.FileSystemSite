@@ -12,7 +12,7 @@
 ##############################################################################
 """ Customizable Python scripts that come from the filesystem.
 
-$Id: FSPythonScript.py,v 1.1 2003/02/10 14:17:40 jw Exp $
+$Id: FSPythonScript.py,v 1.2 2003/10/24 12:25:21 philikon Exp $
 """
 
 from string import strip, split
@@ -30,6 +30,15 @@ from Permissions import ViewManagementScreens, View, FTPAccess
 from DirectoryView import registerFileExtension, registerMetaType, expandpath
 from FSObject import FSObject
 
+from OFS.Cache import Cacheable
+
+_marker = []
+
+class bad_func_code:
+    co_varnames = ()
+    co_argcount = 0
+
+
 class FSPythonScript (FSObject, Script):
     """FSPythonScripts act like Python Scripts but are not directly
     modifiable from the management interface."""
@@ -37,7 +46,10 @@ class FSPythonScript (FSObject, Script):
     meta_type = 'Filesystem Script (Python)'
     _params = _body = ''
     _v_f = None
+    _proxy_roles = ()
 
+    _owner = None  # Unowned
+    
     manage_options=(
         (
             {'label':'Customize', 'action':'manage_main'},
@@ -45,6 +57,7 @@ class FSPythonScript (FSObject, Script):
              'action':'ZScriptHTML_tryForm',
              'help': ('PythonScripts', 'PythonScript_test.stx')},
             )
+            + Cacheable.manage_options
         )
 
     # Use declarative security
@@ -52,7 +65,8 @@ class FSPythonScript (FSObject, Script):
     security.declareObjectProtected(View)
     security.declareProtected(View, 'index_html',)
     # Prevent the bindings from being edited TTW
-    security.declarePrivate('ZBindings_edit','ZBindingsHTML_editForm','ZBindingsHTML_editAction')
+    security.declarePrivate('ZBindings_edit','ZBindingsHTML_editForm',
+                            'ZBindingsHTML_editAction')
 
     security.declareProtected(ViewManagementScreens, 'manage_main')
     manage_main = Globals.DTMLFile('custpy', _dtmldir)
@@ -96,40 +110,66 @@ class FSPythonScript (FSObject, Script):
 
         Calling a Python Script is an actual function invocation.
         """
+        # do caching
+        keyset = None
+        if self.ZCacheable_isCachingEnabled():
+            # Prepare a cache key.
+            keyset = kw.copy()
+            asgns = self.getBindingAssignments()
+            name_context = asgns.getAssignedName('name_context', None)
+            if name_context:
+                keyset[name_context] = self.aq_parent.getPhysicalPath()
+            name_subpath = asgns.getAssignedName('name_subpath', None)
+            if name_subpath:
+                keyset[name_subpath] = self._getTraverseSubpath()
+            # Note: perhaps we should cache based on name_ns also.
+            keyset['*'] = args
+            result = self.ZCacheable_get(keywords=keyset, default=_marker)
+            if result is not _marker:
+                # Got a cached value.
+                return result
+
+        
         # Prepare the function.
         f = self._v_f
         if f is None:
             # The script has errors.
+            __traceback_supplement__ = (
+                FSPythonScriptTracebackSupplement, self, 0)
             raise RuntimeError, '%s has errors.' % self._filepath
 
-        __traceback_info__ = bound_names, args, kw, self.func_defaults
-
+        # Updating func_globals directly is not thread safe here.
+        # In normal PythonScripts, every thread has its own
+        # copy of the function.  But in FSPythonScripts
+        # there is only one copy.  So here's another way.
+        new_globals = f.func_globals.copy()
+        new_globals['__traceback_supplement__'] = (
+            FSPythonScriptTracebackSupplement, self)
         if bound_names:
-            # Updating func_globals directly is not thread safe here.
-            # In normal PythonScripts, every thread has its own
-            # copy of the function.  But in FSPythonScripts
-            # there is only one copy.  So here's another way.
-            new_globals = f.func_globals.copy()
             new_globals.update(bound_names)
-            if f.func_defaults:
-                f = new.function(f.func_code, new_globals, f.func_name,
-                                 f.func_defaults)
-            else:
-                f = new.function(f.func_code, new_globals, f.func_name)
+        if f.func_defaults:
+            f = new.function(f.func_code, new_globals, f.func_name,
+                             f.func_defaults)
+        else:
+            f = new.function(f.func_code, new_globals, f.func_name)
 
         # Execute the function in a new security context.
         security=getSecurityManager()
         security.addContext(self)
         try:
             result = apply(f, args, kw)
+            if keyset is not None:
+                # Store the result in the cache.
+                self.ZCacheable_set(result, keywords=keyset)           
             return result
         finally:
             security.removeContext(self)
 
-    security.declareProtected(ViewManagementScreens,
-      'read', 'getModTime', 'get_size',
-      'ZScriptHTML_tryForm', 'PrincipiaSearchSource',
-      'document_src', 'params', 'body')
+    security.declareProtected(ViewManagementScreens, 'getModTime')
+    # getModTime defined in FSObject
+
+    security.declareProtected(ViewManagementScreens, 'ZScriptHTML_tryForm')
+    # ZScriptHTML_tryForm defined in Shared.DC.Scripts.Script.Script
 
     def ZScriptHTML_tryParams(self):
         """Parameters to test the script with."""
@@ -140,10 +180,12 @@ class FSPythonScript (FSObject, Script):
                 param_names.append(split(name, '=', 1)[0])
         return param_names
 
+    security.declareProtected(ViewManagementScreens, 'read')
     def read(self):
         self._updateFromFS()
         return self._source
-                
+
+    security.declareProtected(ViewManagementScreens, 'document_src')
     def document_src(self, REQUEST=None, RESPONSE=None):
         """Return unprocessed document source."""
 
@@ -151,12 +193,21 @@ class FSPythonScript (FSObject, Script):
             RESPONSE.setHeader('Content-Type', 'text/plain')
         return self._source
 
+    security.declareProtected(ViewManagementScreens, 'PrincipiaSearchSource')
     def PrincipiaSearchSource(self):
         "Support for searching - the document's contents are searched."
         return "%s\n%s" % (self._params, self._body)
 
+    security.declareProtected(ViewManagementScreens, 'params')
     def params(self): return self._params
+
+    security.declareProtected(ViewManagementScreens, 'manage_haveProxy')
+    manage_haveProxy = PythonScript.manage_haveProxy
+
+    security.declareProtected(ViewManagementScreens, 'body')
     def body(self): return self._body
+
+    security.declareProtected(ViewManagementScreens, 'get_size')
     def get_size(self): return len(self.read())
 
     security.declareProtected(FTPAccess, 'manage_FTPget')
@@ -182,7 +233,7 @@ class FSPythonScript (FSObject, Script):
             else:
                 # There were errors in the compile.
                 # No signature.
-                self.func_code = None
+                self.func_code = bad_func_code()
                 self.func_defaults = None
         self._body = ps._body
         self._params = ps._params
@@ -210,8 +261,30 @@ class FSPythonScript (FSObject, Script):
         return self.__dict__.get('title', None)
     title = ComputedAttribute(title, 1)
 
+    def getBindingAssignments(self):
+        # Override of the version in Bindings.py.
+        # This version ensures that bindings get loaded on demand.
+        if not hasattr(self, '_bind_names'):
+            # Set a default first to avoid recursion
+            self._setupBindings()
+            # Now do it for real
+            self._updateFromFS()
+        return self._bind_names
+
 
 Globals.InitializeClass(FSPythonScript)
+
+
+class FSPythonScriptTracebackSupplement:
+    """Implementation of ITracebackSupplement
+
+    Makes script-specific info available in exception tracebacks.
+    """
+    def __init__(self, script, line=-1):
+        self.object = script
+        # If line is set to -1, it means to use tb_lineno.
+        self.line = line
+
 
 registerFileExtension('py', FSPythonScript)
 registerMetaType('Script (Python)', FSPythonScript)

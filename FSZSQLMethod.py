@@ -4,11 +4,11 @@
 # http://www.opensource.org/licenses/mit-license.html
 # See license.txt for more details.
 #
-# $Id: FSZSQLMethod.py,v 1.2 2003/02/10 14:50:53 jw Exp $
+# $Id: FSZSQLMethod.py,v 1.3 2003/10/24 12:25:21 philikon Exp $
 
 """ (not yet)Customizable ZSQL methods that come from the filesystem.
 
-$Id: FSZSQLMethod.py,v 1.2 2003/02/10 14:50:53 jw Exp $
+$Id: FSZSQLMethod.py,v 1.3 2003/10/24 12:25:21 philikon Exp $
 """
 
 import Globals
@@ -72,7 +72,7 @@ class FSZSQLMethod(SQL, FSObject):
 
     def _readFile(self, reparse):
         fp = expandpath(self._filepath)
-        file = open(fp, 'rb')
+        file = open(fp, 'r')    # not 'rb', as this is a text file!
         try:
             data = file.read()
         finally: file.close()

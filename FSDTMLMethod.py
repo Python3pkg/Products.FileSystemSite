@@ -12,7 +12,7 @@
 ##############################################################################
 """ Customizable DTML methods that come from the filesystem.
 
-$Id: FSDTMLMethod.py,v 1.2 2003/02/10 14:50:53 jw Exp $
+$Id: FSDTMLMethod.py,v 1.3 2003/10/24 12:25:21 philikon Exp $
 """
 
 from string import split
@@ -21,19 +21,26 @@ from os import path, stat
 import Globals
 from AccessControl import ClassSecurityInfo, getSecurityManager, Permissions
 from OFS.DTMLMethod import DTMLMethod, decapitate, guess_content_type
+from AccessControl.Role import RoleManager
 
 from utils import _dtmldir
-from Permissions import View, ViewManagementScreens, FTPAccess
+from Permissions import View
+from Permissions import ViewManagementScreens
+from Permissions import FTPAccess
 from DirectoryView import registerFileExtension, registerMetaType, expandpath
 from FSObject import FSObject
+
 try:
     # Zope 2.4.x
     from AccessControl.DTML import RestrictedDTML
 except ImportError:
     class RestrictedDTML: pass
 
+from OFS.Cache import Cacheable
 
-class FSDTMLMethod(RestrictedDTML, FSObject, Globals.HTML):
+_marker = []  # Create a new marker object.
+
+class FSDTMLMethod(RestrictedDTML, RoleManager, FSObject, Globals.HTML):
     """FSDTMLMethods act like DTML methods but are not directly
     modifiable from the management interface."""
 
@@ -44,8 +51,14 @@ class FSDTMLMethod(RestrictedDTML, FSObject, Globals.HTML):
             {'label':'Customize', 'action':'manage_main'},
             {'label':'View', 'action':'',
              'help':('OFSP','DTML-DocumentOrMethod_View.stx')},
+            {'label':'Proxy', 'action':'manage_proxyForm',
+             'help':('OFSP','DTML-DocumentOrMethod_Proxy.stx')},
             )
+            +Cacheable.manage_options
         )
+
+    _proxy_roles=()
+    _cache_namespace_keys=()
 
     # Use declarative security
     security = ClassSecurityInfo()
@@ -68,19 +81,18 @@ class FSDTMLMethod(RestrictedDTML, FSObject, Globals.HTML):
 
     def _readFile(self, reparse):
         fp = expandpath(self._filepath)
-        file = open(fp, 'rb')
+        file = open(fp, 'r')    # not 'rb', as this is a text file!
         try:
             data = file.read()
-        finally: 
+        finally:
             file.close()
         self.raw = data
         if reparse:
-            self._reading = 1 # avoid infinite recursion
+            self._reading = 1  # Avoid infinite recursion
             try:
                 self.cook()
             finally:
                 self._reading = 0
-
 
     # Hook up chances to reload in debug mode
     security.declarePrivate('read_raw')
@@ -104,6 +116,12 @@ class FSDTMLMethod(RestrictedDTML, FSObject, Globals.HTML):
 
         self._updateFromFS()
 
+        if not self._cache_namespace_keys:
+            data = self.ZCacheable_get(default=_marker)
+            if data is not _marker:
+                # Return cached results.
+                return data
+
         kw['document_id']   =self.getId()
         kw['document_title']=self.title
 
@@ -116,10 +134,14 @@ class FSDTMLMethod(RestrictedDTML, FSObject, Globals.HTML):
                 r=apply(Globals.HTML.__call__, (self, client, REQUEST), kw)
                 if RESPONSE is None: result = r
                 else: result = decapitate(r, RESPONSE)
+                if not self._cache_namespace_keys:
+                    self.ZCacheable_set(result)
                 return result
 
             r=apply(Globals.HTML.__call__, (self, client, REQUEST), kw)
             if type(r) is not type('') or RESPONSE is None:
+                if not self._cache_namespace_keys:
+                    self.ZCacheable_set(r)
                 return r
 
         finally: security.removeContext(self)
@@ -132,22 +154,47 @@ class FSDTMLMethod(RestrictedDTML, FSObject, Globals.HTML):
                 c, e=guess_content_type(self.getId(), r)
             RESPONSE.setHeader('Content-Type', c)
         result = decapitate(r, RESPONSE)
+        if not self._cache_namespace_keys:
+            self.ZCacheable_set(result)
         return result
+
+    def getCacheNamespaceKeys(self):
+        '''
+        Returns the cacheNamespaceKeys.
+        '''
+        return self._cache_namespace_keys
+        
+    def setCacheNamespaceKeys(self, keys, REQUEST=None):
+        '''
+        Sets the list of names that should be looked up in the
+        namespace to provide a cache key.
+        '''
+        ks = []
+        for key in keys:
+            key = strip(str(key))
+            if key:
+                ks.append(key)
+        self._cache_namespace_keys = tuple(ks)
+        if REQUEST is not None:
+            return self.ZCacheable_manage(self, REQUEST)
 
     # Zope 2.3.x way:
     def validate(self, inst, parent, name, value, md=None):
         return getSecurityManager().validate(inst, parent, name, value)
 
     security.declareProtected(FTPAccess, 'manage_FTPget')
-    security.declareProtected(ViewManagementScreens, 'PrincipiaSearchSource',
-        'document_src')
-
     manage_FTPget = DTMLMethod.manage_FTPget
+
+    security.declareProtected(ViewManagementScreens, 'PrincipiaSearchSource')
     PrincipiaSearchSource = DTMLMethod.PrincipiaSearchSource
+
+    security.declareProtected(ViewManagementScreens, 'document_src')
     document_src = DTMLMethod.document_src
+
+    security.declareProtected(ViewManagementScreens, 'manage_haveProxy')
+    manage_haveProxy = DTMLMethod.manage_haveProxy
 
 Globals.InitializeClass(FSDTMLMethod)
 
 registerFileExtension('dtml', FSDTMLMethod)
-registerFileExtension('css', FSDTMLMethod)
 registerMetaType('DTML Method', FSDTMLMethod)

@@ -12,7 +12,7 @@
 ##############################################################################
 """ Views of filesystem directories as folders.
 
-$Id: DirectoryView.py,v 1.3 2003/09/23 08:20:11 gotcha Exp $
+$Id: DirectoryView.py,v 1.4 2003/10/24 12:25:21 philikon Exp $
 """
 
 import Globals
@@ -20,36 +20,43 @@ from Globals import HTMLFile, Persistent, package_home, DTMLFile
 import os
 from os import path, listdir, stat
 from Acquisition import aq_inner, aq_parent, aq_base
-from string import rfind, strip, join
+from string import split, rfind, strip, join
 from App.Common import package_home
 from OFS.ObjectManager import bad_id
 from OFS.Folder import Folder
 from AccessControl import ClassSecurityInfo
-from Permissions import AccessContentsInformation, ManagePortal
-import Permissions
+from Permissions import AccessContentsInformation
+from Permissions import ManagePortal
+from Permissions import ViewManagementScreens
 from FSObject import BadFile
 from utils import expandpath, minimalpath
 from zLOG import LOG, ERROR
 from sys import exc_info
 from types import StringType
+from FSMetadata import FSMetadata
+import re
 
-_dtmldir = os.path.join( package_home( globals() ), 'dtml' )
+_dtmldir = path.join( package_home( globals() ), 'dtml' )
 
 __reload_module__ = 0
 
 # Ignore version control subdirectories
+ignore = ('CVS', 'SVN', '.', '..', '.svn')
+# Ignore suspected backups and hidden files
+ignore_re = re.compile(r'\.|(.*~$)|#')
+
 # and special names.
-def _filter(name):
-    return name not in ('CVS', 'SVN', '.', '..')
-
 def _filtered_listdir(path):
-    n = filter(_filter,
-               listdir(path))
-    return n
+    return [ name
+             for name
+             in listdir(path)
+             if name not in ignore ]
 
-# This walker is only used on the Win32 version of _changed
 def _walker (listdir, dirname, names):
-    names[:]=filter(_filter,names)
+    names = [ (name, stat(path.join(dirname,name))[8])
+              for name
+              in names
+              if name not in ignore and not ignore_re.match(name) ]
     listdir.extend(names)
 
 class DirectoryInformation:
@@ -91,63 +98,13 @@ class DirectoryInformation:
             lines = f.readlines()
             f.close()
             for line in lines:
-                try: obname, meta_type = line.split(':')
+                try: obname, meta_type = split(line, ':')
                 except: pass
                 else:
                     types[strip(obname)] = strip(meta_type)
         return types
 
-
-    def _readProperties(self, fp):
-        """Reads the properties file next to an object.
-        """
-        try:
-            f = open(fp, 'rt')
-        except IOError:
-            return None
-        else:
-            lines = f.readlines()
-            f.close()
-            props = {}
-            for line in lines:
-                try: key, value = line.split('=')
-                except: pass
-                else:
-                    props[strip(key)] = strip(value)
-            return props
-
-    def _readSecurity(self, fp):
-        """Reads the security file next to an object.
-        """
-        try:
-            f = open(fp, 'rt')
-        except IOError:
-            return None        
-        else:
-            lines = f.readlines()
-            f.close()
-            prm = {}
-            for line in lines:
-                try:
-                    c1 = line.index(':')+1
-                    c2 = line.index(':',c1)
-                    permission = line[:c1-1]
-                    acquire = not not line[c1:c2] # get boolean                    
-                    proles = line[c2+1:].split(',')
-                    roles=[]
-                    for role in proles:
-                        role = role.strip()
-                        if role:
-                            roles.append(role)
-                except:
-                    LOG('DirectoryView',
-                        ERROR,
-                        'Error reading permission from .security file',
-                        error=exc_info())
-                prm[permission]=(acquire,roles)
-            return prm
-
-    if Globals.DevelopmentMode and os.name=='nt':
+    if Globals.DevelopmentMode:
 
         def _changed(self):
             mtime=0
@@ -166,23 +123,13 @@ class DirectoryInformation:
                     ERROR,
                     'Error checking for directory modification',
                     error=exc_info())
-                
+
             if mtime != self._v_last_read or filelist != self._v_last_filelist:
                 self._v_last_read = mtime
                 self._v_last_filelist = filelist
                 
                 return 1
 
-            return 0
-        
-    elif Globals.DevelopmentMode:
-        
-        def _changed(self):
-            try: mtime = stat(expandpath(self.filepath))[8]
-            except: mtime = 0
-            if mtime != self._v_last_read:
-                self._v_last_read = mtime
-                return 1
             return 0
         
     else:
@@ -261,11 +208,11 @@ class DirectoryInformation:
                     t = registry.getTypeByExtension(ext)
                 
                 if t is not None:
-                    properties = self._readProperties(
-                        e_fp + '.properties')
+                    metadata = FSMetadata(e_fp)
+                    metadata.read()
                     try:
                         ob = t(name, e_filepath, fullname=entry,
-                               properties=properties)
+                               properties=metadata.getProperties())
                     except:
                         import traceback
                         typ, val, tb = exc_info()
@@ -286,7 +233,7 @@ class DirectoryInformation:
                             
                     # FS-based security
                     try:
-                        permissions = self._readSecurity(e_fp + '.security')
+                        permissions = metadata.getSecurity()
                         if permissions is not None:
                             for name in permissions.keys():
                                 acquire,roles = permissions[name]
@@ -294,9 +241,19 @@ class DirectoryInformation:
                     except:
                         LOG('DirectoryView',
                             ERROR,
-                            'Error setting permission from .security file information',
+                            'Error setting permissions',
                             error=exc_info())
 
+                    # only DTML Methods can have proxy roles
+                    if hasattr(ob, '_proxy_roles'):
+                        try:
+                            ob._proxy_roles = tuple(metadata.getProxyRoles())
+                        except:
+                            LOG('DirectoryView',
+                                ERROR,
+                                'Error setting proxy role',
+                                error=exc_info())
+                    
                     ob_id = ob.getId()
                     data[ob_id] = ob
                     objects.append({'id': ob_id, 'meta_type': ob.meta_type})
@@ -324,12 +281,20 @@ class DirectoryRegistry:
         return self._meta_types.get(mt, None)
 
     def registerDirectory(self, name, _prefix, subdirs=1):
+        # This what is actually called to register a
+        # file system directory to become a FSDV.
         if not isinstance(_prefix, StringType):
             _prefix = package_home(_prefix)
         filepath = path.join(_prefix, name)
         self.registerDirectoryByPath(filepath, subdirs)
 
     def registerDirectoryByPath(self, filepath, subdirs=1):
+        # This is indirectly called during registration of
+        # a directory. As you can see, minimalpath is called
+        # on the supplied path at this point.
+        # The idea is that the registry will only contain
+        # small paths that are likely to work across platforms
+        # and SOFTWARE_HOME, INSTANCE_HOME and PRODUCTS_PATH setups
         fp = minimalpath(filepath)
         normfilepath = path.normpath(filepath)
         self._directories[fp] = di = DirectoryInformation(normfilepath, fp)
@@ -344,8 +309,12 @@ class DirectoryRegistry:
             info.reload()
 
     def getDirectoryInfo(self, filepath):
+        # This is called when we need to get hold of the information
+        # for a minimal path.
+        # minimalpath is called on the supplied path on the hope
+        # that if it is incorrect, something can be done to fix it.
         # Can return None.
-        return self._directories.get(os.path.normpath(filepath), None)
+        return self._directories.get(minimalpath(filepath), None)
 
     def listDirectories(self):
         dirs = self._directories.keys()
@@ -360,7 +329,6 @@ registerMetaType = _dirreg.registerMetaType
 
 
 def listFolderHierarchy(ob, path, rval, adding_meta_type=None):
-    return 
     if not hasattr(ob, 'objectValues'):
         return
     values = ob.objectValues()
@@ -430,6 +398,8 @@ class DirectoryViewSurrogate (Folder):
     all_meta_types = ()
     _isDirectoryView = 1
 
+#    _is_wrapperish = 1
+
     security = ClassSecurityInfo()
 
     def __init__(self, real, data, objects):
@@ -444,12 +414,10 @@ class DirectoryViewSurrogate (Folder):
         d[name] = value
         setattr(d['_real'], name, value)
 
-    security.declareProtected(ManagePortal,
-                              'manage_propertiesForm')
+    security.declareProtected(ManagePortal, 'manage_propertiesForm')
     manage_propertiesForm = DTMLFile( 'dirview_properties', _dtmldir )
 
-    security.declareProtected(ManagePortal,
-                              'manage_properties')
+    security.declareProtected(ManagePortal, 'manage_properties')
     def manage_properties( self, dirpath, REQUEST=None ):
         """
             Update the directory path of the DV.
@@ -458,9 +426,8 @@ class DirectoryViewSurrogate (Folder):
         if REQUEST is not None:
             REQUEST['RESPONSE'].redirect( '%s/manage_propertiesForm'
                                         % self.absolute_url() )
-    
-    security.declareProtected(Permissions.ViewManagementScreens,
-                              'manage_doCustomize')
+
+    security.declareProtected(ViewManagementScreens, 'manage_doCustomize')
     def manage_doCustomize( self, folder_path, REQUEST=None, root=None):
         """
             Recursive copy to folder.
@@ -468,28 +435,28 @@ class DirectoryViewSurrogate (Folder):
         id = self.getId()
         fpath = tuple(folder_path.split('/'))
         if root is None:
-            rootFolder = getToolByName(self,'portal_skins') 
+            rootFolder = getToolByName(self,'portal_skins')
         else:
             rootFolder = root
         folder = rootFolder.restrictedTraverse(fpath)
         folder.manage_addFolder(id)
         items = self.objectValues()
+
         for item in items:
             item.manage_doCustomize(id, root=folder)
+
         if REQUEST is not None:
             REQUEST['RESPONSE'].redirect( '%s/%s/manage_main'
-                                        % (folder.absolute_url(), id) )
-    
-    security.declareProtected(AccessContentsInformation,
-                              'getCustomizableObject')
+                                          % (folder.absolute_url(), id) )
+
+    security.declareProtected(AccessContentsInformation, 'getCustomizableObject')
     def getCustomizableObject(self):
         ob = aq_parent(aq_inner(self))
         while getattr(ob, '_isDirectoryView', 0):
             ob = aq_parent(aq_inner(ob))
         return ob
 
-    security.declareProtected(AccessContentsInformation,
-                              'listCustFolderPaths')
+    security.declareProtected(AccessContentsInformation, 'listCustFolderPaths')
     def listCustFolderPaths(self, adding_meta_type=None):
         '''
         Returns a list of possible customization folders
@@ -501,8 +468,7 @@ class DirectoryViewSurrogate (Folder):
         rval.sort()
         return rval
 
-    security.declareProtected(AccessContentsInformation,
-                             'getDirPath')
+    security.declareProtected(AccessContentsInformation, 'getDirPath')
     def getDirPath(self):
         return self.__dict__['_real']._dirpath
 

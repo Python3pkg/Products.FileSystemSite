@@ -12,10 +12,8 @@
 ##############################################################################
 """ Customizable properties that come from the filesystem.
 
-$Id: FSPropertiesObject.py,v 1.1 2003/02/10 14:17:40 jw Exp $
+$Id: FSPropertiesObject.py,v 1.2 2003/10/24 12:25:21 philikon Exp $
 """
-
-from string import split, strip
 
 import Globals
 import Acquisition
@@ -42,14 +40,14 @@ class FSPropertiesObject (FSObject, PropertyManager):
     manage_main = Globals.DTMLFile('custprops', _dtmldir)
 
     # Declare all (inherited) mutating methods private.
-    security.declarePrivate('manage_addProperty',
-                            'manage_editProperties',
-                            'manage_delProperties',
-                            'manage_changeProperties',
-                            'manage_propertiesForm',
-                            'manage_propertyTypeForm',
-                            'manage_changePropertyTypes',)
-                               
+    security.declarePrivate('manage_addProperty')
+    security.declarePrivate('manage_editProperties')
+    security.declarePrivate('manage_delProperties')
+    security.declarePrivate('manage_changeProperties')
+    security.declarePrivate('manage_propertiesForm')
+    security.declarePrivate('manage_propertyTypeForm')
+    security.declarePrivate('manage_changePropertyTypes')
+
     security.declareProtected(ViewManagementScreens, 'manage_doCustomize')
     def manage_doCustomize(self, folder_path, RESPONSE=None):
         """Makes a ZODB Based clone with the same data.
@@ -61,7 +59,7 @@ class FSPropertiesObject (FSObject, PropertyManager):
         FSObject.manage_doCustomize(self, folder_path, RESPONSE)
 
         if RESPONSE is not None:
-            fpath = tuple(split(folder_path, '/'))
+            fpath = tuple(folder_path.split('/'))
             folder = self.restrictedTraverse(fpath)
             RESPONSE.redirect('%s/%s/manage_propertiesForm' % (
                 folder.absolute_url(), self.getId()))
@@ -92,7 +90,7 @@ class FSPropertiesObject (FSObject, PropertyManager):
 
         fp = expandpath(self._filepath)
 
-        file = open(fp, 'rb')
+        file = open(fp, 'r')    # not 'rb', as this is a text file!
         try:
             lines = file.readlines()
         finally:
@@ -104,20 +102,20 @@ class FSPropertiesObject (FSObject, PropertyManager):
         for line in lines:
 
             lino = lino + 1
-            line = strip( line )
+            line = line.strip()
 
             if not line or line[0] == '#':
                 continue
 
             try:
-                propname, proptv = split( line, ':' )
+                propname, proptv = line.split(':',1)
                 #XXX multi-line properties?
-                proptype, propvstr = proptv.split( '=', 1 )
-                propname = strip(propname)
-                proptype = strip(proptype)
-                propvstr = strip(propvstr)
+                proptype, propvstr = proptv.split( '=', 1 ) 
+                propname = propname.strip()
+                proptype = proptype.strip()
+                propvstr = propvstr.strip()
                 converter = get_converter( proptype, lambda x: x )
-                propvalue = converter( strip( propvstr ) )
+                propvalue = converter( propvstr )
                 # Should be safe since we're loading from
                 # the filesystem.
                 setattr(self, propname, propvalue)

@@ -1,28 +1,50 @@
 FileSystemSite
 
-  This is a repackaging of the CMF's FileSystem Directory Views
-  such that it is independent of the CMF.
+  This is a repackaging of the CMF's FileSystem Directory Views such
+  that it is independent of the CMF.
 
   The major use of this is to develop view code on the file system
   such that it can be edited with normal development utilties and
   checked into a source control management system.
 
   The only additions are some minor modifications to the FSZSQLMethods
-  for argument handling, some EditorUtils for setting syntax highlighting,
-  the addition of FSExternalMethods, and some templates for common fs types.
+  for argument handling, some EditorUtils for setting syntax
+  highlighting, the addition of FSExternalMethods, and some templates
+  for common fs types.
 
-  an example of how to use this can be found in the ExampleSite
-  subdirectory. That directory should be moved into the Products directory
-  and it will register its subdirectory as an FSDirectoryView which will
-  make it accessible for addition from the ZMI screens.
+  An example of how to use this can be found in the ExampleSite
+  subdirectory. That directory should be moved into the Products
+  directory and it will register its subdirectory as an
+  FSDirectoryView which will make it accessible for addition from the
+  ZMI screens.
 
- Version::
- 
-   1.2
+ Packager
 
- Changes 
+   kapil thangavelu (kvthan@wm.edu)
 
-   - update to CMF1.3 code
+ Author
+
+   Zope Corp.
+
+ License
+
+   ZPL 2.0
+
+ Changes
+
+  1.3 (by Philipp von Weitershausen)
+
+   - updated to CMF 1.4.1 code
+
+   - fixed icon display
+
+   - ported unit tests
+
+   - allow recursive customization (Godefroid Chapelle)
+
+  1.2
+
+   - updated to CMF 1.3 code
 
    - removed .ps extension from editor utils emacs binding
 
@@ -30,17 +52,5 @@ FileSystemSite
 
    - added FSExternal Method
 
-   - removed ZMI customization capability as this caused long time outs
-     for sites with deep structures.
-
- Packager
- 
-   kapil thangavelu (kvthan@wm.edu)
-
- Author 
-   
-   Zope Corp
-
- LICENSE
-   
-   ZPL 2.0
+   - removed ZMI customization capability as this caused long time
+     outs for sites with deep structures.

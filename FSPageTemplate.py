@@ -10,14 +10,14 @@
 # FOR A PARTICULAR PURPOSE
 # 
 ##########################################################################
-""" Customizable page templates that come from the filesystem.
+"""Customizable page templates that come from the filesystem.
 
-$Id: FSPageTemplate.py,v 1.4 2003/08/27 09:46:30 zagy Exp $
+$Id: FSPageTemplate.py,v 1.5 2003/10/24 12:25:21 philikon Exp $
 """
 
 from string import split, replace
 from os import stat
-import re
+import re, sys
 
 import Globals, Acquisition
 from DateTime import DateTime
@@ -29,23 +29,32 @@ from Products.PageTemplates.PageTemplate import PageTemplate
 from Products.PageTemplates.ZopePageTemplate import ZopePageTemplate, Src
 
 from DirectoryView import registerFileExtension, registerMetaType, expandpath
-from Permissions import ViewManagementScreens, View, FTPAccess
+from Permissions import ViewManagementScreens
+from Permissions import View
+from Permissions import FTPAccess
 from FSObject import FSObject
-from utils import getToolByName
+from utils import getToolByName, _setCacheHeaders
 
 xml_detect_re = re.compile('^\s*<\?xml\s+')
+
+from OFS.Cache import Cacheable
+
+_marker = []  # Create a new marker object.
 
 class FSPageTemplate(FSObject, Script, PageTemplate):
     "Wrapper for Page Template"
      
     meta_type = 'Filesystem Page Template'
 
+    _owner = None  # Unowned
+
     manage_options=(
         (
             {'label':'Customize', 'action':'manage_main'},
             {'label':'Test', 'action':'ZScriptHTML_tryForm'},
             )
-        )
+            +Cacheable.manage_options
+        ) 
 
     security = ClassSecurityInfo()
     security.declareObjectProtected(View)
@@ -67,15 +76,12 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
         obj.write(self.read())
         return obj
 
-    def ZCacheable_isCachingEnabled(self):
-        return 0
-
-    def pt_source_file(self):
-        return self._filepath
+#    def ZCacheable_isCachingEnabled(self):
+#        return 0
 
     def _readFile(self, reparse):
         fp = expandpath(self._filepath)
-        file = open(fp, 'rb')
+        file = open(fp, 'r')    # not 'rb', as this is a text file!
         try: 
             data = file.read()
         finally: 
@@ -115,39 +121,20 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
     def pt_render(self, source=0, extra_context={}):
         self._updateFromFS()  # Make sure the template has been loaded.
         try:
-            if not source: # Hook up to caching policy.
-
-                REQUEST = getattr( self, 'REQUEST', None )
-
-                if REQUEST:
-
-                    content = aq_parent( self )
-
-                    mgr = getToolByName( content
-                                       , 'caching_policy_manager'
-                                       , None
-                                       )
-
-                    if mgr:
-                        view_name = self.getId()
-                        RESPONSE = REQUEST[ 'RESPONSE' ]
-                        headers = mgr.getHTTPCachingHeaders( content
-                                                           , view_name
-                                                           , extra_context
-                                                           )
-                        for key, value in headers:
-                            RESPONSE.setHeader( key, value )
-
-            return FSPageTemplate.inheritedAttribute('pt_render')( self,
-                    source, extra_context )
+            result = FSPageTemplate.inheritedAttribute('pt_render')(
+                                    self, source, extra_context
+                                    )
+            if not source:
+                _setCacheHeaders(self, extra_context)
+            return result
 
         except RuntimeError:
             if Globals.DevelopmentMode:
                 err = FSPageTemplate.inheritedAttribute( 'pt_errors' )( self )
-                if err is None:
-                    raise
+                if not err:
+                    err = sys.exc_info()
                 err_type = err[0]
-                err_msg = '<pre>%s</pre>' % replace( err[1], "\'", "'" )
+                err_msg = '<pre>%s</pre>' % replace( str(err[1]), "\'", "'" )
                 msg = 'FS Page Template %s has errors: %s.<br>%s' % (
                     self.id, err_type, html_quote(err_msg) )
                 raise RuntimeError, msg
@@ -164,27 +151,70 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
             response = self.REQUEST.RESPONSE
         except AttributeError:
             response = None
-        # Read file first to get a correct content_type 
+        # Read file first to get a correct content_type default value.
         self._updateFromFS()
-        # delegate to ZPT's exec
-        result = self._ZPT_exec(bound_names, args, kw )
-        #if response is not None:
-        #    response.setHeader( 'content-type', self.content_type )
+        
+        if not kw.has_key('args'):
+            kw['args'] = args
+        bound_names['options'] = kw
+
+        try:
+            response = self.REQUEST.RESPONSE
+            if not response.headers.has_key('content-type'):
+                response.setHeader('content-type', self.content_type)
+        except AttributeError:
+            pass
+            
+        security=getSecurityManager()
+        bound_names['user'] = security.getUser()
+
+        # Retrieve the value from the cache.
+        keyset = None
+        if self.ZCacheable_isCachingEnabled():
+            # Prepare a cache key.
+            keyset = {
+                      # Why oh why?
+                      # All this code is cut and paste
+                      # here to make sure that we 
+                      # dont call _getContext and hence can't cache
+                      # Annoying huh?
+                      'here': self.aq_parent.getPhysicalPath(),
+                      'bound_names': bound_names}
+            result = self.ZCacheable_get(keywords=keyset)
+            if result is not None:
+                # Got a cached value.
+                return result
+
+        # Execute the template in a new security context.
+        security.addContext(self)
+        try:
+            result = self.pt_render(extra_context=bound_names)
+            if keyset is not None:
+                # Store the result in the cache.
+                self.ZCacheable_set(result, keywords=keyset)
+            return result
+        finally:
+            security.removeContext(self)
+        
         return result
  
     # Copy over more methods
     security.declareProtected(FTPAccess, 'manage_FTPget')
-    security.declareProtected(View, 'get_size')
-    security.declareProtected(ViewManagementScreens, 'PrincipiaSearchSource',
-        'document_src')
-
-    pt_getContext = ZopePageTemplate.pt_getContext
-    ZScriptHTML_tryParams = ZopePageTemplate.ZScriptHTML_tryParams
     manage_FTPget = ZopePageTemplate.manage_FTPget
+
+    security.declareProtected(View, 'get_size')
     get_size = ZopePageTemplate.get_size
     getSize = get_size
+
+    security.declareProtected(ViewManagementScreens, 'PrincipiaSearchSource')
     PrincipiaSearchSource = ZopePageTemplate.PrincipiaSearchSource
+
+    security.declareProtected(ViewManagementScreens, 'document_src')
     document_src = ZopePageTemplate.document_src
+
+    pt_getContext = ZopePageTemplate.pt_getContext
+
+    ZScriptHTML_tryParams = ZopePageTemplate.ZScriptHTML_tryParams
 
 
 d = FSPageTemplate.__dict__
@@ -193,6 +223,7 @@ d['source.xml'] = d['source.html'] = Src()
 Globals.InitializeClass(FSPageTemplate)
 
 registerFileExtension('pt', FSPageTemplate)
+registerFileExtension('zpt', FSPageTemplate)
 registerFileExtension('html', FSPageTemplate)
 registerFileExtension('htm', FSPageTemplate)
 registerMetaType('Page Template', FSPageTemplate)

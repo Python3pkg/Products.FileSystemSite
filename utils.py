@@ -17,6 +17,12 @@ import re
 import operator
 from types import StringType
 
+from Globals import package_home
+from Globals import HTMLFile
+from Globals import ImageFile
+from Globals import InitializeClass
+from Globals import MessageDialog
+
 from ExtensionClass import Base
 from Acquisition import aq_get, aq_inner, aq_parent
 
@@ -27,12 +33,6 @@ from AccessControl.Permission import Permission
 from AccessControl.PermissionRole import rolesForPermissionOn
 from AccessControl.Role import gather_permissions
 
-from Globals import package_home
-from Globals import InitializeClass
-from Globals import HTMLFile
-from Globals import ImageFile
-from Globals import MessageDialog
-
 from OFS.PropertyManager import PropertyManager
 from OFS.SimpleItem import SimpleItem
 from OFS.PropertySheets import PropertySheets
@@ -42,42 +42,20 @@ try:
     from OFS.ObjectManager import UNIQUE
 except ImportError:
     UNIQUE = 2
+from Products.PageTemplates.Expressions import getEngine
+from Products.PageTemplates.Expressions import SecureModuleImporter
 
-import StructuredText
-from StructuredText.HTMLWithImages import HTMLWithImages
 
-_STXDWI = StructuredText.DocumentWithImages.__class__
-
-security = ModuleSecurityInfo( 'Products.CMFCore.utils' )
-
-security.declarePublic( 'getToolByName'
-                      , 'cookString'
-                      , 'tuplize'
-                      , 'format_stx'
-                      , 'keywordsplitter'
-                      , 'normalize'
-                      , 'expandpath'
-                      , 'minimalpath'
-                      )
-
-security.declarePrivate( '_getAuthenticatedUser'
-                       , '_checkPermission'
-                       , '_verifyActionPermissions'
-                       , '_getViewFor'
-                       , '_limitGrantedRoles'
-                       , '_mergedLocalRoles'
-                       , '_modifyPermissionMappings'
-                       , '_ac_inherited_permissions'
-                       )
+security = ModuleSecurityInfo( 'Products.FileSystemSite.utils' )
 
 _dtmldir = os_path.join( package_home( globals() ), 'dtml' )
-
 
 #
 #   Simple utility functions, callable from restricted code.
 #
 _marker = []  # Create a new marker object.
 
+security.declarePublic('getToolByName')
 def getToolByName(obj, name, default=_marker):
 
     """ Get the tool, 'toolname', by acquiring it.
@@ -97,6 +75,7 @@ def getToolByName(obj, name, default=_marker):
             raise AttributeError, name
         return tool
 
+security.declarePublic('cookString')
 def cookString(text):
 
     """ Make a Zope-friendly ID from 'text'.
@@ -109,6 +88,7 @@ def cookString(text):
     cooked = re.sub(rgx, "",text).lower()
     return cooked
 
+security.declarePublic('tuplize')
 def tuplize( valueName, value ):
 
     """ Make a tuple from 'value'.
@@ -126,9 +106,11 @@ def tuplize( valueName, value ):
 #
 #   Security utilities, callable only from unrestricted code.
 #
+security.declarePrivate('_getAuthenticatedUser')
 def _getAuthenticatedUser( self ):
     return getSecurityManager().getUser()
 
+security.declarePrivate('_checkPermission')
 def _checkPermission(permission, obj, StringType = type('')):
     roles = rolesForPermissionOn(permission, obj)
     if type(roles) is StringType:
@@ -137,8 +119,9 @@ def _checkPermission(permission, obj, StringType = type('')):
         return 1
     return 0
 
+security.declarePrivate('_verifyActionPermissions')
 def _verifyActionPermissions(obj, action):
-    pp = action.get('permissions', ())
+    pp = action.getPermissions()
     if not pp:
         return 1
     for p in pp:
@@ -146,19 +129,49 @@ def _verifyActionPermissions(obj, action):
             return 1
     return 0
 
+security.declarePublic( 'getActionContext' )
+def getActionContext( self ):
+    data = { 'object_url'   : ''
+           , 'folder_url'   : ''
+           , 'portal_url'   : ''
+           , 'object'       : None
+           , 'folder'       : None
+           , 'portal'       : None
+           , 'nothing'      : None
+           , 'request'      : getattr( self, 'REQUEST', None )
+           , 'modules'      : SecureModuleImporter
+           , 'member'       : None
+           }
+    return getEngine().getContext( data )
+
+security.declarePrivate('_getViewFor')
 def _getViewFor(obj, view='view'):
     ti = obj.getTypeInfo()
+
     if ti is not None:
-        actions = ti.getActions()
+
+        context = getActionContext( obj )
+        actions = ti.listActions()
+
         for action in actions:
-            if action.get('id', None) == view:
-                if _verifyActionPermissions(obj, action):
-                    return obj.restrictedTraverse(action['action'])
+            if action.getId() == view:
+                if _verifyActionPermissions( obj, action ):
+                    target = action.action(context).strip()
+                    if target.startswith('/'):
+                        target = target[1:]
+                    __traceback_info__ = ( ti.getId(), target )
+                    return obj.restrictedTraverse( target )
+
         # "view" action is not present or not allowed.
         # Find something that's allowed.
         for action in actions:
             if _verifyActionPermissions(obj, action):
-                return obj.restrictedTraverse(action['action'])
+                target = action.action(context).strip()
+                if target.startswith('/'):
+                    target = target[1:]
+                __traceback_info__ = ( ti.getId(), target )
+                return obj.restrictedTraverse( target )
+
         raise 'Unauthorized', ('No accessible views available for %s' %
                                '/'.join(obj.getPhysicalPath()))
     else:
@@ -168,6 +181,7 @@ def _getViewFor(obj, view='view'):
 
 # If Zope ever provides a call to getRolesInContext() through
 # the SecurityManager API, the method below needs to be updated.
+security.declarePrivate('_limitGrantedRoles')
 def _limitGrantedRoles(roles, context, special_roles=()):
     # Only allow a user to grant roles already possessed by that user,
     # with the exception that all special_roles can also be granted.
@@ -185,6 +199,7 @@ def _limitGrantedRoles(roles, context, special_roles=()):
 
 limitGrantedRoles = _limitGrantedRoles  # XXX: Deprecated spelling
 
+security.declarePrivate('_mergedLocalRoles')
 def _mergedLocalRoles(object):
     """Returns a merging of object and its ancestors'
     __ac_local_roles__."""
@@ -213,6 +228,7 @@ def _mergedLocalRoles(object):
 
 mergedLocalRoles = _mergedLocalRoles    # XXX: Deprecated spelling
 
+security.declarePrivate('_ac_inherited_permissions')
 def _ac_inherited_permissions(ob, all=0):
     # Get all permissions not defined in ourself that are inherited
     # This will be a sequence of tuples with a name as the first item and
@@ -231,6 +247,7 @@ def _ac_inherited_permissions(ob, all=0):
        r = list(perms) + r
     return r
 
+security.declarePrivate('_modifyPermissionMappings')
 def _modifyPermissionMappings(ob, map):
     """
     Modifies multiple role to permission mappings.
@@ -268,6 +285,22 @@ def _modifyPermissionMappings(ob, map):
             something_changed = 1
     return something_changed
 
+security.declarePrivate('_setCacheHeaders')
+def _setCacheHeaders(obj, extra_context):
+    """Set cache headers according to cache policy manager for the obj."""
+    REQUEST = getattr(obj, 'REQUEST', None)
+    if REQUEST is not None:
+        content = aq_parent(obj)
+        manager = getToolByName(obj, 'caching_policy_manager', None)
+        if manager is not None:
+            view_name = obj.getId()
+            headers = manager.getHTTPCachingHeaders(
+                              content, view_name, extra_context
+                              )
+            RESPONSE = REQUEST['RESPONSE']
+            for key, value in headers:
+                RESPONSE.setHeader(key, value)
+
 #
 #   Base classes for tools
 #
@@ -303,11 +336,9 @@ class SimpleItemWithProperties (PropertyManager, SimpleItem):
 
 
     security = ClassSecurityInfo()
-    security.declarePrivate(
-        'manage_addProperty',
-        'manage_delProperties',
-        'manage_changePropertyTypes',
-        )
+    security.declarePrivate('manage_addProperty')
+    security.declarePrivate('manage_delProperties')
+    security.declarePrivate('manage_changePropertyTypes')
 
     def manage_propertiesForm(self, REQUEST, *args, **kw):
         'An override that makes the schema fixed.'
@@ -364,7 +395,6 @@ class ToolInit:
             tool.icon = 'misc_/%s/%s' % (self.product_name, self.icon)
 
 InitializeClass( ToolInit )
-
 
 addInstanceForm = HTMLFile('dtml/addInstance', globals())
 
@@ -537,35 +567,12 @@ def registerIcon(klass, iconspec, _prefix=None):
 #   XXX:    This section is mostly workarounds for things fixed in the
 #           core, and should go away soon.
 #
+from StructuredText import Basic as STXBasic
+from StructuredText import DocumentWithImages
+from StructuredText.HTMLClass import HTMLClass
+from StructuredText.HTMLWithImages import HTMLWithImages
 
-class CMFDocumentClass( StructuredText.DocumentWithImages.__class__ ):
-    """
-    Override DWI to get '_' into links, and also turn on inner/named links.
-    """
-    text_types = [
-        'doc_named_link',
-        'doc_inner_link',
-        ] + _STXDWI.text_types
-    
-    _URL_AND_PUNC = r'([a-zA-Z0-9_\@\.\,\?\=\&\+\!\/\:\;\-\#\~]+)'
-    def doc_href( self
-                , s
-                , expr1 = re.compile( _STXDWI._DQUOTEDTEXT
-                                    + "(:)"
-                                    + _URL_AND_PUNC
-                                    + _STXDWI._SPACES
-                                    ).search
-                , expr2 = re.compile( _STXDWI._DQUOTEDTEXT
-                                    + r'(\,\s+)'
-                                    + _URL_AND_PUNC
-                                    + _STXDWI._SPACES
-                                    ).search
-                ):
-        return _STXDWI.doc_href( self, s, expr1, expr2 )
-
-CMFDocumentClass = CMFDocumentClass()
-
-class CMFHtmlWithImages( HTMLWithImages ):
+class _CMFHtmlWithImages( HTMLWithImages ):
     """ Special subclass of HTMLWithImages, overriding document() """
 
     def document(self, doc, level, output):
@@ -577,17 +584,18 @@ class CMFHtmlWithImages( HTMLWithImages ):
         for c in doc.getChildNodes():
            getattr(self, self.element_types[c.getNodeName()])(c, level, output)
 
-CMFHtmlWithImages = CMFHtmlWithImages()
-            
+CMFHtmlWithImages = _CMFHtmlWithImages()
+
+security.declarePublic('format_stx')
 def format_stx( text, level=1 ):
     """
         Render STX to HTML.
     """
-    st = StructuredText.Basic( text )   # Creates the basic DOM
-    if not st:                          # If it's an empty object
-        return ""                       # return now or have errors!
+    st = STXBasic( text )   # Creates the basic DOM
+    if not st:              # If it's an empty object
+        return ""           # return now or have errors!
 
-    doc = CMFDocumentClass( st )
+    doc = DocumentWithImages( st )
     html = CMFHtmlWithImages( doc, level )
     return html
 
@@ -598,6 +606,7 @@ _format_stx = format_stx    # XXX: Deprecated spelling
 #
 KEYSPLITRE = re.compile(r'[,;]')
 
+security.declarePublic('keywordsplitter')
 def keywordsplitter( headers
                    , names=('Subject', 'Keywords',)
                    , splitter=KEYSPLITRE.split
@@ -614,35 +623,52 @@ def keywordsplitter( headers
 #
 #   Directory-handling utilities
 #
+security.declarePublic('normalize')
 def normalize(p):
-    return os_path.abspath(os_path.normcase(os_path.normpath(p)))
-
-normINSTANCE_HOME = normalize(INSTANCE_HOME)
-normSOFTWARE_HOME = normalize(SOFTWARE_HOME)
+    # the weird .replace is needed to help normpath
+    # when dealing with Windows paths under *nix
+    return os_path.normpath(p.replace('\\','/'))
 
 separators = (os.sep, os.altsep)
 
+import Products
+ProductsPath = []
+ProductsPath = map(normalize,Products.__path__)
+
+security.declarePublic('expandpath')
 def expandpath(p):
     # Converts a minimal path to an absolute path.
+
+    # This has a slight weakness in that if someone creates a new
+    # product with the same name as an old one, then the skins may
+    # become confused between the two.
+    # However, that's an acceptable risk as people don't seem
+    # to re-use product names ever (it would create ZODB persistence
+    # problems too ;-)
+    
     p = os_path.normpath(p)
     if os_path.isabs(p):
         return p
-    abs = os_path.join(normINSTANCE_HOME, p)
-    if os_path.exists(abs):
-        return abs
-    return os_path.join(normSOFTWARE_HOME, p)
+    
+    for ppath in ProductsPath:
+        abs = os_path.join(ppath, p)
+        if os_path.exists(abs):
+            return abs
 
+    # return the last one, errors will happen else where as as result
+    # and be caught
+    return abs
+
+security.declarePublic('minimalpath')
 def minimalpath(p):
-    # Trims INSTANCE_HOME or SOFTWARE_HOME from a path.
-    p = os_path.abspath(p)
-    abs = normalize(p)
-    l = len(normINSTANCE_HOME)
-    if abs[:l] != normINSTANCE_HOME:
-        l = len(normSOFTWARE_HOME)
-        if abs[:l] != normSOFTWARE_HOME:
-            # Can't minimize.
+    # This trims down to just beyond a 'Products' root if it can.
+    # otherwise, it returns what it was given.
+    # In either case, the path is normalized.
+    p = normalize(p)
+    index = p.rfind('Products')
+    if index == -1:
+        index = p.rfind('products')
+        if index == -1:
+            # couldn't normalise            
             return p
-    p = p[l:]
-    while p[:1] in separators:
-        p = p[1:]
-    return p
+    return p[index+len('products/'):]

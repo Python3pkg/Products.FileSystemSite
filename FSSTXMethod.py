@@ -12,7 +12,7 @@
 ##############################################################################
 """FSSTXMethod: Filesystem methodish Structured Text document.
 
-$Id: FSSTXMethod.py,v 1.1 2003/02/10 14:17:40 jw Exp $
+$Id: FSSTXMethod.py,v 1.2 2003/10/24 12:25:21 philikon Exp $
 """
 
 import Globals
@@ -64,8 +64,7 @@ class FSSTXMethod( FSObject ):
         """
             Create a ZODB (editable) equivalent of this object.
         """
-        # XXX:  do this soon
-        raise NotImplemented, "See next week's model."
+        raise NotImplementedError, "See next week's model."
 
     def _readFile( self, reparse ):
 
@@ -144,16 +143,14 @@ class FSSTXMethod( FSObject ):
         """
         return self.raw
 
-    security.declareProtected( ViewManagementScreens
-                             , 'PrincipiaSearchSource' )
+    security.declareProtected( ViewManagementScreens, 'PrincipiaSearchSource' )
     def PrincipiaSearchSource( self ):
         """
             Fetch our source for indexing in a catalog.
         """
         return self.raw
 
-    security.declareProtected( ViewManagementScreens
-                             , 'document_src' )
+    security.declareProtected( ViewManagementScreens, 'document_src' )
     def document_src( self ):
         """
             Fetch our source for indexing in a catalog.
