@@ -18,7 +18,7 @@ FileSystemSite
 
  Version::
  
-   1.1
+   1.2
 
  Changes 
 
