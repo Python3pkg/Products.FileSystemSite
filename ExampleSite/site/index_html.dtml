@@ -1,0 +1,9 @@
+<dtml-var standard_html_header>
+
+<h2>Congratulations</h2>
+
+<p> You have successfully installed FileSystemSite </p>
+
+
+<dtml-var standard_html_footer>
+
