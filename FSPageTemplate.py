@@ -12,7 +12,7 @@
 ##########################################################################
 """ Customizable page templates that come from the filesystem.
 
-$Id: FSPageTemplate.py,v 1.1 2003/02/10 14:17:39 jw Exp $
+$Id: FSPageTemplate.py,v 1.2 2003/02/10 14:50:53 jw Exp $
 """
 
 from string import split, replace
@@ -159,10 +159,12 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
             response = self.REQUEST.RESPONSE
         except AttributeError:
             response = None
-        # call "inherited"
-        result = self._ZPT_exec( bound_names, args, kw )
-        if response is not None:
-            response.setHeader( 'content-type', self.content_type )
+        # Read file first to get a correct content_type 
+        self._updateFromFS()
+        # delegate to ZPT's exec
+        result = self._ZPT_exec(bound_names, args, kw )
+        #if response is not None:
+        #    response.setHeader( 'content-type', self.content_type )
         return result
  
     # Copy over more methods

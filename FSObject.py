@@ -12,7 +12,7 @@
 ##############################################################################
 """ Customizable objects that come from the filesystem (base class).
 
-$Id: FSObject.py,v 1.1 2003/02/10 14:17:41 jw Exp $
+$Id: FSObject.py,v 1.2 2003/02/10 14:50:53 jw Exp $
 """
 
 from string import split
@@ -97,15 +97,20 @@ class FSObject(Acquisition.Implicit, Item):
     # Refresh our contents from the filesystem if that is newer and we are
     # running in debug mode.
     def _updateFromFS(self):
+        
         parsed = self._parsed
+        from zLOG import LOG, INFO
+        import os
+        path = "..." + os.sep.join(expandpath(self._filepath).split(os.sep)[-3:])
+        LOG('_updateFromFS', INFO, "%s already parsed: %s" %(path, parsed))
         if not parsed or Globals.DevelopmentMode:
             fp = expandpath(self._filepath)
             try:    mtime=stat(fp)[8]
             except: mtime=0
             if not parsed or mtime != self._file_mod_time:
+                self._readFile(1)
                 self._parsed = 1
                 self._file_mod_time = mtime
-                self._readFile(1)
 
     security.declareProtected(Permissions.View, 'get_size')
     def get_size(self):

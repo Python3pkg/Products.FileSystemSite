@@ -12,7 +12,7 @@
 ##############################################################################
 """ Views of filesystem directories as folders.
 
-$Id: DirectoryView.py,v 1.1 2003/02/10 14:17:41 jw Exp $
+$Id: DirectoryView.py,v 1.2 2003/02/10 14:50:53 jw Exp $
 """
 
 import Globals
@@ -499,7 +499,7 @@ def createDirectoryView(parent, filepath, id=None):
     Adds either a DirectoryView or a derivative object.
     '''
     info = _dirreg.getDirectoryInfo(filepath)
-    if dir is None:
+    if info is None:
         raise ValueError('Not a registered directory: %s' % filepath)
     if not id:
         id = path.split(filepath)[-1]

@@ -12,7 +12,7 @@
 ##############################################################################
 """ Customizable DTML methods that come from the filesystem.
 
-$Id: FSDTMLMethod.py,v 1.1 2003/02/10 14:17:39 jw Exp $
+$Id: FSDTMLMethod.py,v 1.2 2003/02/10 14:50:53 jw Exp $
 """
 
 from string import split
@@ -54,6 +54,8 @@ class FSDTMLMethod(RestrictedDTML, FSObject, Globals.HTML):
     security.declareProtected(ViewManagementScreens, 'manage_main')
     manage_main = Globals.DTMLFile('custdtml', _dtmldir)
 
+    _reading = 0
+
     def __init__(self, id, filepath, fullname=None, properties=None):
         FSObject.__init__(self, id, filepath, fullname, properties)
         # Normally called via HTML.__init__ but we don't need the rest that
@@ -69,15 +71,22 @@ class FSDTMLMethod(RestrictedDTML, FSObject, Globals.HTML):
         file = open(fp, 'rb')
         try:
             data = file.read()
-        finally: file.close()
+        finally: 
+            file.close()
         self.raw = data
         if reparse:
-            self.cook()
+            self._reading = 1 # avoid infinite recursion
+            try:
+                self.cook()
+            finally:
+                self._reading = 0
+
 
     # Hook up chances to reload in debug mode
     security.declarePrivate('read_raw')
     def read_raw(self):
-        self._updateFromFS()
+        if not self._reading:
+            self._updateFromFS()
         return Globals.HTML.read_raw(self)
 
     #### The following is mainly taken from OFS/DTMLMethod.py ###

@@ -4,11 +4,11 @@
 # http://www.opensource.org/licenses/mit-license.html
 # See license.txt for more details.
 #
-# $Id: FSZSQLMethod.py,v 1.1 2003/02/10 14:17:40 jw Exp $
+# $Id: FSZSQLMethod.py,v 1.2 2003/02/10 14:50:53 jw Exp $
 
 """ (not yet)Customizable ZSQL methods that come from the filesystem.
 
-$Id: FSZSQLMethod.py,v 1.1 2003/02/10 14:17:40 jw Exp $
+$Id: FSZSQLMethod.py,v 1.2 2003/02/10 14:50:53 jw Exp $
 """
 
 import Globals
@@ -95,7 +95,7 @@ class FSZSQLMethod(SQL, FSObject):
         try:            
             title =         parameters.get('title','')
             connection_id = parameters.get('connection id',parameters['connection_id'])
-            arguments =     parameters.get('arguments','').replace(',','\n')
+            arguments =     parameters.get('arguments','')
             max_rows =      parameters.get('max_rows',1000)
             max_cache =     parameters.get('max_cache',100)
             cache_time =    parameters.get('cache_time',0)            
