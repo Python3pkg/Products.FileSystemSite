@@ -1,0 +1,33 @@
+ Changes
+
+  1.4.1 
+
+    - Minor documentation changes.
+
+  1.4
+
+    - *removed* recursive customization, due to really bad scalability in 
+      large Silva sites.
+
+  1.3
+
+   - updated to CMF 1.4.1 code
+
+   - fixed icon display
+
+   - ported unit tests
+
+   - allow recursive customization (Godefroid Chapelle)
+
+  1.2
+
+   - updated to CMF 1.3 code
+
+   - removed .ps extension from editor utils emacs binding
+
+   - added fix for broken FSZSQL arg handling
+
+   - added FSExternal Method
+
+   - removed ZMI customization capability as this caused long time
+     outs for sites with deep structures.
