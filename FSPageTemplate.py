@@ -12,7 +12,7 @@
 ##########################################################################
 """ Customizable page templates that come from the filesystem.
 
-$Id: FSPageTemplate.py,v 1.2 2003/02/10 14:50:53 jw Exp $
+$Id: FSPageTemplate.py,v 1.3 2003/08/19 08:46:56 gotcha Exp $
 """
 
 from string import split, replace
@@ -69,6 +69,9 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
 
     def ZCacheable_isCachingEnabled(self):
         return 0
+
+    def pt_source_file(self):
+        return self._filepath
 
     def _readFile(self, reparse):
         fp = expandpath(self._filepath)
