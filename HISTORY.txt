@@ -1,5 +1,9 @@
  Changes
 
+  To be released
+
+    - Added support for Dieter Maurer's TrustedFSPythonScript.
+
   1.4.1 
 
     - Minor documentation changes.

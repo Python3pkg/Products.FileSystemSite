@@ -10,6 +10,7 @@ import FSPageTemplate
 import FSZSQLMethod
 import FSPythonScript
 import FSExternalMethod
+import TrustedFSPythonScript
 
 def initialize(context):
 
@@ -28,6 +29,8 @@ def initialize(context):
     utils.registerIcon(FSDTMLMethod.FSDTMLMethod,
                        'images/fsdtml.gif', globals())
     utils.registerIcon(FSPythonScript.FSPythonScript,
+                       'images/fspy.gif', globals())
+    utils.registerIcon(TrustedFSPythonScript.TrustedFSPythonScript,
                        'images/fspy.gif', globals())
     utils.registerIcon(FSImage.FSImage,
                        'images/fsimage.gif', globals())
