@@ -12,7 +12,7 @@
 ##########################################################################
 """ Customizable page templates that come from the filesystem.
 
-$Id: FSPageTemplate.py,v 1.3 2003/08/19 08:46:56 gotcha Exp $
+$Id: FSPageTemplate.py,v 1.4 2003/08/27 09:46:30 zagy Exp $
 """
 
 from string import split, replace
@@ -144,6 +144,8 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
         except RuntimeError:
             if Globals.DevelopmentMode:
                 err = FSPageTemplate.inheritedAttribute( 'pt_errors' )( self )
+                if err is None:
+                    raise
                 err_type = err[0]
                 err_msg = '<pre>%s</pre>' % replace( err[1], "\'", "'" )
                 msg = 'FS Page Template %s has errors: %s.<br>%s' % (
