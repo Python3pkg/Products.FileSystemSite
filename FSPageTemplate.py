@@ -12,7 +12,7 @@
 ##########################################################################
 """Customizable page templates that come from the filesystem.
 
-$Id: FSPageTemplate.py,v 1.5 2003/10/24 12:25:21 philikon Exp $
+$Id: FSPageTemplate.py,v 1.6 2005/03/16 16:38:29 faassen Exp $
 """
 
 from string import split, replace
@@ -142,8 +142,8 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
                 raise
                 
     security.declarePrivate( '_ZPT_exec' )
-    _ZPT_exec = ZopePageTemplate._exec
-
+    _ZPT_exec = ZopePageTemplate._exec.im_func
+    
     security.declarePrivate( '_exec' )
     def _exec(self, bound_names, args, kw):
         """Call a FSPageTemplate"""
@@ -200,25 +200,27 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
  
     # Copy over more methods
     security.declareProtected(FTPAccess, 'manage_FTPget')
-    manage_FTPget = ZopePageTemplate.manage_FTPget
+    manage_FTPget = ZopePageTemplate.manage_FTPget.im_func
 
     security.declareProtected(View, 'get_size')
-    get_size = ZopePageTemplate.get_size
+    get_size = ZopePageTemplate.get_size.im_func
     getSize = get_size
 
     security.declareProtected(ViewManagementScreens, 'PrincipiaSearchSource')
     PrincipiaSearchSource = ZopePageTemplate.PrincipiaSearchSource
 
     security.declareProtected(ViewManagementScreens, 'document_src')
-    document_src = ZopePageTemplate.document_src
+    document_src = ZopePageTemplate.document_src.im_func
 
-    pt_getContext = ZopePageTemplate.pt_getContext
+    pt_getContext = ZopePageTemplate.pt_getContext.im_func
 
-    ZScriptHTML_tryParams = ZopePageTemplate.ZScriptHTML_tryParams
+    ZScriptHTML_tryParams = ZopePageTemplate.ZScriptHTML_tryParams.im_func
 
 
-d = FSPageTemplate.__dict__
-d['source.xml'] = d['source.html'] = Src()
+d = FSPageTemplate
+o = Src()
+setattr(d, 'source.xml', o)
+setattr(d, 'source.html', o)
 
 Globals.InitializeClass(FSPageTemplate)
 
