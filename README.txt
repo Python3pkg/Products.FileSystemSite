@@ -32,7 +32,12 @@ FileSystemSite
 
  Changes
 
-  1.3 (by Philipp von Weitershausen)
+  1.4
+
+    - *removed* recursive customization, due to really bad scalability in 
+      large Silva sites.
+
+  1.3
 
    - updated to CMF 1.4.1 code
 

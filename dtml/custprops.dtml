@@ -35,9 +35,6 @@
           <em>Select a destination folder and press the button
           to make a copy of these properties that can be customized.</em><br>
           <select name="folder_path" size="1">
-            <dtml-in expr="listCustFolderPaths('Folder')">
-              <option value="&dtml-sequence-key;">&dtml-sequence-item;</option>
-            </dtml-in>
           </select>
           <input type="submit" name="submit" value=" Customize ">
         </td>
