@@ -12,7 +12,7 @@
 ##############################################################################
 """ Customizable objects that come from the filesystem (base class).
 
-$Id: FSObject.py,v 1.5 2003/10/24 12:25:21 philikon Exp $
+$Id: FSObject.py,v 1.6 2003/11/03 08:17:41 gotcha Exp $
 """
 
 from string import split
@@ -78,12 +78,15 @@ class FSObject(Acquisition.Implicit, Item, Cacheable):
         obj = self._createZODBClone()
         
         id = obj.getId()
-        fpath = tuple(split(folder_path, '/'))
         if root is None:
             rootFolder = getToolByName(self,'portal_skins')
         else:
             rootFolder = root
-        folder = rootFolder.restrictedTraverse(fpath)
+        if folder_path == '.':
+            folder = rootFolder.restrictedTraverse(())
+        else:
+            fpath = tuple(split(folder_path, '/'))
+            folder = rootFolder.restrictedTraverse(fpath)
         folder._verifyObjectPaste(obj, validate_src=0)
         folder._setObject(id, obj)
 

@@ -12,7 +12,7 @@
 ##############################################################################
 """ Views of filesystem directories as folders.
 
-$Id: DirectoryView.py,v 1.4 2003/10/24 12:25:21 philikon Exp $
+$Id: DirectoryView.py,v 1.5 2003/11/03 08:17:41 gotcha Exp $
 """
 
 import Globals
@@ -438,7 +438,11 @@ class DirectoryViewSurrogate (Folder):
             rootFolder = getToolByName(self,'portal_skins')
         else:
             rootFolder = root
-        folder = rootFolder.restrictedTraverse(fpath)
+        if folder_path == '.':
+            folder = rootFolder.restrictedTraverse(())
+        else:
+            fpath = tuple(split(folder_path, '/'))
+            folder = rootFolder.restrictedTraverse(fpath)
         folder.manage_addFolder(id)
         items = self.objectValues()
 
