@@ -1,6 +1,6 @@
 # Copyright (C) 2004 by Dr. Dieter Maurer, Eichendorffstr. 23, D-66386 St. Ingbert, Germany
 # see "LICENSE.txt" for details
-#       $Id: Utils.py,v 1.1 2004/09/06 17:00:46 faassen Exp $
+#       $Id: ExtensionClassUtils.py,v 1.1 2005/07/27 10:20:00 walco Exp $
 '''Utilities'''
 
 from ExtensionClass import Base
