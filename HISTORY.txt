@@ -4,6 +4,8 @@
 
     - Added support for Dieter Maurer's TrustedFSPythonScript.
 
+    - Fixed the unit tests.
+
   1.4.1 
 
     - Minor documentation changes.
