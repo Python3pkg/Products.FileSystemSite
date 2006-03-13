@@ -1,38 +1,42 @@
 ##############################################################################
 #
 # Copyright (c) 2001 Zope Corporation and Contributors. All Rights Reserved.
-# 
+#
 # This software is subject to the provisions of the Zope Public License,
-# Version 2.0 (ZPL).  A copy of the ZPL should accompany this distribution.
+# Version 2.1 (ZPL).  A copy of the ZPL should accompany this distribution.
 # THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL EXPRESS OR IMPLIED
 # WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND FITNESS
-# FOR A PARTICULAR PURPOSE
-# 
+# FOR A PARTICULAR PURPOSE.
+#
 ##############################################################################
 """ Customizable Python scripts that come from the filesystem.
 
-$Id: FSPythonScript.py,v 1.2 2003/10/24 12:25:21 philikon Exp $
+$Id: FSPythonScript.py 41760 2006-02-23 14:02:19Z mj $
 """
 
-from string import strip, split
-from os import path, stat
 import new
 
-import Globals
-from AccessControl import ClassSecurityInfo, getSecurityManager
+from AccessControl import ClassSecurityInfo
+from AccessControl import getSecurityManager
+from ComputedAttribute import ComputedAttribute
+from Globals import DTMLFile
+from Globals import InitializeClass
+from OFS.Cache import Cacheable
 from Products.PythonScripts.PythonScript import PythonScript
 from Shared.DC.Scripts.Script import Script
-from ComputedAttribute import ComputedAttribute
 
-from utils import _dtmldir
-from Permissions import ViewManagementScreens, View, FTPAccess
-from DirectoryView import registerFileExtension, registerMetaType, expandpath
+from DirectoryView import registerFileExtension
+from DirectoryView import registerMetaType
 from FSObject import FSObject
-
-from OFS.Cache import Cacheable
+from Permissions import FTPAccess
+from Permissions import View
+from Permissions import ViewManagementScreens
+from utils import _dtmldir
+from utils import expandpath
 
 _marker = []
+
 
 class bad_func_code:
     co_varnames = ()
@@ -49,7 +53,7 @@ class FSPythonScript (FSObject, Script):
     _proxy_roles = ()
 
     _owner = None  # Unowned
-    
+
     manage_options=(
         (
             {'label':'Customize', 'action':'manage_main'},
@@ -69,7 +73,7 @@ class FSPythonScript (FSObject, Script):
                             'ZBindingsHTML_editAction')
 
     security.declareProtected(ViewManagementScreens, 'manage_main')
-    manage_main = Globals.DTMLFile('custpy', _dtmldir)
+    manage_main = DTMLFile('custpy', _dtmldir)
 
     def _createZODBClone(self):
         """Create a ZODB (editable) equivalent of this object."""
@@ -79,12 +83,12 @@ class FSPythonScript (FSObject, Script):
 
     def _readFile(self, reparse):
         """Read the data from the filesystem.
-        
+
         Read the file (indicated by exandpath(self._filepath), and parse the
         data if necessary.
         """
         fp = expandpath(self._filepath)
-        file = open(fp, 'r')
+        file = open(fp, 'rU')
         try: data = file.read()
         finally: file.close()
         if reparse:
@@ -129,7 +133,6 @@ class FSPythonScript (FSObject, Script):
                 # Got a cached value.
                 return result
 
-        
         # Prepare the function.
         f = self._v_f
         if f is None:
@@ -145,6 +148,7 @@ class FSPythonScript (FSObject, Script):
         new_globals = f.func_globals.copy()
         new_globals['__traceback_supplement__'] = (
             FSPythonScriptTracebackSupplement, self)
+        new_globals['__file__'] = self._filepath
         if bound_names:
             new_globals.update(bound_names)
         if f.func_defaults:
@@ -157,10 +161,10 @@ class FSPythonScript (FSObject, Script):
         security=getSecurityManager()
         security.addContext(self)
         try:
-            result = apply(f, args, kw)
+            result = f(*args, **kw)
             if keyset is not None:
                 # Store the result in the cache.
-                self.ZCacheable_set(result, keywords=keyset)           
+                self.ZCacheable_set(result, keywords=keyset)
             return result
         finally:
             security.removeContext(self)
@@ -174,10 +178,10 @@ class FSPythonScript (FSObject, Script):
     def ZScriptHTML_tryParams(self):
         """Parameters to test the script with."""
         param_names = []
-        for name in split(self._params, ','):
-            name = strip(name)
+        for name in self._params.split(','):
+            name = name.strip()
             if name and name[0] != '*':
-                param_names.append(split(name, '=', 1)[0])
+                param_names.append( name.split('=', 1)[0] )
         return param_names
 
     security.declareProtected(ViewManagementScreens, 'read')
@@ -202,7 +206,7 @@ class FSPythonScript (FSObject, Script):
     def params(self): return self._params
 
     security.declareProtected(ViewManagementScreens, 'manage_haveProxy')
-    manage_haveProxy = PythonScript.manage_haveProxy
+    manage_haveProxy = PythonScript.manage_haveProxy.im_func
 
     security.declareProtected(ViewManagementScreens, 'body')
     def body(self): return self._body
@@ -271,8 +275,7 @@ class FSPythonScript (FSObject, Script):
             self._updateFromFS()
         return self._bind_names
 
-
-Globals.InitializeClass(FSPythonScript)
+InitializeClass(FSPythonScript)
 
 
 class FSPythonScriptTracebackSupplement:

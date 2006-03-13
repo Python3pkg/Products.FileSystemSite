@@ -1,44 +1,40 @@
 ##############################################################################
 #
 # Copyright (c) 2001 Zope Corporation and Contributors. All Rights Reserved.
-# 
+#
 # This software is subject to the provisions of the Zope Public License,
-# Version 2.0 (ZPL).  A copy of the ZPL should accompany this distribution.
+# Version 2.1 (ZPL).  A copy of the ZPL should accompany this distribution.
 # THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL EXPRESS OR IMPLIED
 # WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND FITNESS
-# FOR A PARTICULAR PURPOSE
-# 
+# FOR A PARTICULAR PURPOSE.
+#
 ##############################################################################
 """ Customizable DTML methods that come from the filesystem.
 
-$Id: FSDTMLMethod.py,v 1.3 2003/10/24 12:25:21 philikon Exp $
+$Id: FSDTMLMethod.py 41663 2006-02-18 13:57:52Z jens $
 """
 
-from string import split
-from os import path, stat
-
 import Globals
-from AccessControl import ClassSecurityInfo, getSecurityManager, Permissions
-from OFS.DTMLMethod import DTMLMethod, decapitate, guess_content_type
+from AccessControl import ClassSecurityInfo, getSecurityManager
+from AccessControl.DTML import RestrictedDTML
 from AccessControl.Role import RoleManager
+from OFS.Cache import Cacheable
+from OFS.DTMLMethod import DTMLMethod, decapitate, guess_content_type
 
-from utils import _dtmldir
+from DirectoryView import registerFileExtension
+from DirectoryView import registerMetaType
+from FSObject import FSObject
+from Permissions import FTPAccess
 from Permissions import View
 from Permissions import ViewManagementScreens
-from Permissions import FTPAccess
-from DirectoryView import registerFileExtension, registerMetaType, expandpath
-from FSObject import FSObject
+from utils import _dtmldir
+from utils import _setCacheHeaders, _checkConditionalGET
+from utils import expandpath
 
-try:
-    # Zope 2.4.x
-    from AccessControl.DTML import RestrictedDTML
-except ImportError:
-    class RestrictedDTML: pass
-
-from OFS.Cache import Cacheable
 
 _marker = []  # Create a new marker object.
+
 
 class FSDTMLMethod(RestrictedDTML, RoleManager, FSObject, Globals.HTML):
     """FSDTMLMethods act like DTML methods but are not directly
@@ -102,7 +98,7 @@ class FSDTMLMethod(RestrictedDTML, RoleManager, FSObject, Globals.HTML):
         return Globals.HTML.read_raw(self)
 
     #### The following is mainly taken from OFS/DTMLMethod.py ###
-        
+
     index_html=None # Prevent accidental acquisition
 
     # Documents masquerade as functions:
@@ -116,30 +112,34 @@ class FSDTMLMethod(RestrictedDTML, RoleManager, FSObject, Globals.HTML):
 
         self._updateFromFS()
 
+        kw['document_id']   =self.getId()
+        kw['document_title']=self.title
+
+        if client is not None:
+            if _checkConditionalGET(self, kw):
+                return ''
+
         if not self._cache_namespace_keys:
             data = self.ZCacheable_get(default=_marker)
             if data is not _marker:
                 # Return cached results.
                 return data
 
-        kw['document_id']   =self.getId()
-        kw['document_title']=self.title
-
+        __traceback_info__ = self._filepath
         security=getSecurityManager()
         security.addContext(self)
         try:
-        
+            r = Globals.HTML.__call__(self, client, REQUEST, **kw)
+
             if client is None:
                 # Called as subtemplate, so don't need error propagation!
-                r=apply(Globals.HTML.__call__, (self, client, REQUEST), kw)
                 if RESPONSE is None: result = r
                 else: result = decapitate(r, RESPONSE)
                 if not self._cache_namespace_keys:
                     self.ZCacheable_set(result)
                 return result
 
-            r=apply(Globals.HTML.__call__, (self, client, REQUEST), kw)
-            if type(r) is not type('') or RESPONSE is None:
+            if not isinstance(r, basestring) or RESPONSE is None:
                 if not self._cache_namespace_keys:
                     self.ZCacheable_set(r)
                 return r
@@ -153,6 +153,9 @@ class FSDTMLMethod(RestrictedDTML, RoleManager, FSObject, Globals.HTML):
             else:
                 c, e=guess_content_type(self.getId(), r)
             RESPONSE.setHeader('Content-Type', c)
+        if RESPONSE is not None:
+            # caching policy manager hook
+            _setCacheHeaders(self, {})
         result = decapitate(r, RESPONSE)
         if not self._cache_namespace_keys:
             self.ZCacheable_set(result)
@@ -163,7 +166,7 @@ class FSDTMLMethod(RestrictedDTML, RoleManager, FSObject, Globals.HTML):
         Returns the cacheNamespaceKeys.
         '''
         return self._cache_namespace_keys
-        
+
     def setCacheNamespaceKeys(self, keys, REQUEST=None):
         '''
         Sets the list of names that should be looked up in the
@@ -183,16 +186,16 @@ class FSDTMLMethod(RestrictedDTML, RoleManager, FSObject, Globals.HTML):
         return getSecurityManager().validate(inst, parent, name, value)
 
     security.declareProtected(FTPAccess, 'manage_FTPget')
-    manage_FTPget = DTMLMethod.manage_FTPget
+    manage_FTPget = DTMLMethod.manage_FTPget.im_func
 
     security.declareProtected(ViewManagementScreens, 'PrincipiaSearchSource')
-    PrincipiaSearchSource = DTMLMethod.PrincipiaSearchSource
+    PrincipiaSearchSource = DTMLMethod.PrincipiaSearchSource.im_func
 
     security.declareProtected(ViewManagementScreens, 'document_src')
-    document_src = DTMLMethod.document_src
+    document_src = DTMLMethod.document_src.im_func
 
     security.declareProtected(ViewManagementScreens, 'manage_haveProxy')
-    manage_haveProxy = DTMLMethod.manage_haveProxy
+    manage_haveProxy = DTMLMethod.manage_haveProxy.im_func
 
 Globals.InitializeClass(FSDTMLMethod)
 

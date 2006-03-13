@@ -1,35 +1,32 @@
 ##############################################################################
 #
 # Copyright (c) 2001 Zope Corporation and Contributors. All Rights Reserved.
-# 
+#
 # This software is subject to the provisions of the Zope Public License,
-# Version 2.0 (ZPL).  A copy of the ZPL should accompany this distribution.
+# Version 2.1 (ZPL).  A copy of the ZPL should accompany this distribution.
 # THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL EXPRESS OR IMPLIED
 # WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND FITNESS
-# FOR A PARTICULAR PURPOSE
-# 
+# FOR A PARTICULAR PURPOSE.
+#
 ##############################################################################
-"""FSSTXMethod: Filesystem methodish Structured Text document.
+""" FSSTXMethod: Filesystem methodish Structured Text document.
 
-$Id: FSSTXMethod.py,v 1.2 2003/10/24 12:25:21 philikon Exp $
+$Id: FSSTXMethod.py 37990 2005-08-18 16:43:36Z jens $
 """
 
 import Globals
 from AccessControl import ClassSecurityInfo
-import StructuredText
+from StructuredText.StructuredText import HTML
 
-from DirectoryView import registerFileExtension
-from DirectoryView import registerMetaType
-from DirectoryView import expandpath
-from FSObject import FSObject
-
+from Permissions import FTPAccess
 from Permissions import View
 from Permissions import ViewManagementScreens
-from Permissions import FTPAccess
-
+from DirectoryView import registerFileExtension
+from DirectoryView import registerMetaType
+from FSObject import FSObject
 from utils import _dtmldir
-from utils import format_stx
+from utils import expandpath
 
 
 class FSSTXMethod( FSObject ):
@@ -91,7 +88,7 @@ class FSSTXMethod( FSObject ):
     func_code.co_varnames= ()
     func_code.co_argcount=0
     func_code.__roles__=()
-    
+
     func_defaults__roles__=()
     func_defaults=()
 
@@ -101,7 +98,7 @@ class FSSTXMethod( FSObject ):
 
     def cook( self ):
         if not hasattr( self, '_v_cooked' ):
-            self._v_cooked = format_stx( text=self.raw )
+            self._v_cooked = HTML(self.raw, level=1, header=0)
         return self._v_cooked
 
     _default_template = Globals.HTML( """\
@@ -119,7 +116,7 @@ class FSSTXMethod( FSObject ):
 
         if RESPONSE is not None:
             RESPONSE.setHeader( 'Content-Type', 'text/html' )
-        return apply( self._render, ( REQUEST, RESPONSE ), kw )
+        return self._render(REQUEST, RESPONSE, **kw)
 
     security.declarePrivate( '_render' )
     def _render( self, REQUEST={}, RESPONSE=None, **kw ):
@@ -130,11 +127,11 @@ class FSSTXMethod( FSObject ):
         template = getattr( self, 'stxmethod_view', self._default_template )
 
         if getattr( template, 'isDocTemp', 0 ):
-            posargs = ( self, REQUEST )
+            posargs = ( self, REQUEST, RESPONSE )
         else:
             posargs = ()
-        
-        return apply( template, posargs, { 'cooked' : self.cook() } )
+
+        return template(*posargs, **{ 'cooked' : self.cook() } )
 
     security.declareProtected( FTPAccess, 'manage_FTPget' )
     def manage_FTPget( self ):

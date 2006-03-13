@@ -1,4 +1,23 @@
+##############################################################################
+#
+# Copyright (c) 2002 Zope Corporation and Contributors. All Rights Reserved.
+#
+# This software is subject to the provisions of the Zope Public License,
+# Version 2.1 (ZPL).  A copy of the ZPL should accompany this distribution.
+# THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL EXPRESS OR IMPLIED
+# WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND FITNESS
+# FOR A PARTICULAR PURPOSE.
+#
+##############################################################################
+""" Unit test security.
+
+$Id: security.py 41231 2006-01-08 18:01:44Z yuppie $
+"""
+
+from AccessControl.PermissionRole import rolesForPermissionOn
 from Acquisition import Implicit
+
 
 class PermissiveSecurityPolicy:
     """
@@ -16,12 +35,19 @@ class PermissiveSecurityPolicy:
                 , roles=None
                 , *args
                 , **kw):
-        return 1
-    
-    def checkPermission( self, permission, object, context) :
+        if name and name.startswith('hidden'):
+            return False
+        else:
+            return True
+
+    def checkPermission(self, permission, object, context):
         if permission == 'forbidden permission':
             return 0
-        return 1
+        roles = rolesForPermissionOn(permission, object)
+        if isinstance(roles, basestring):
+            roles=[roles]
+        return context.user.allowed(object, roles)
+
 
 class OmnipotentUser( Implicit ):
     """
@@ -29,11 +55,21 @@ class OmnipotentUser( Implicit ):
     """
     def getId( self ):
         return 'all_powerful_Oz'
-    
+
     getUserName = getId
+
+    def getRoles(self):
+        return ('Manager',)
 
     def allowed( self, object, object_roles=None ):
         return 1
+
+    def getRolesInContext(self, object):
+        return ('Manager',)
+
+    def _check_context(self, object):
+        return True
+
 
 class UserWithRoles( Implicit ):
     """
@@ -45,8 +81,11 @@ class UserWithRoles( Implicit ):
 
     def getId( self ):
         return 'high_roller'
-    
+
     getUserName = getId
+
+    def getRoles(self):
+        return self._roles
 
     def allowed( self, object, object_roles=None ):
         if object_roles is None:
@@ -61,8 +100,8 @@ class AnonymousUser( Implicit ):
       Anonymous USer for unit testing purposes.
     """
     def getId( self ):
-        return 'unit_tester'
-    
+        return 'Anonymous User'
+
     getUserName = getId
 
     def has_permission(self, permission, obj):

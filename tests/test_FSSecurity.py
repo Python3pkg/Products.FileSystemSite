@@ -1,39 +1,44 @@
-import Zope
-
 from unittest import TestSuite, makeSuite, main
-from types import ListType
-from os import remove
-from os.path import join
+import Testing
+try:
+    import Zope2
+except ImportError: # BBB: for Zope 2.7
+    import Zope as Zope2
+Zope2.startup()
+
 from time import sleep
 
 from AccessControl.Permission import Permission
-from Products.FileSystemSite.tests.base.testcase import RequestTest
-from Products.FileSystemSite.tests.base.testcase import FSDVTest
-
 from Globals import DevelopmentMode
 
-class FSSecurityBase( RequestTest, FSDVTest ):
+from Products.CMFCore.tests.base.testcase import FSDVTest
+from Products.CMFCore.tests.base.testcase import RequestTest
+from Products.CMFCore.tests.base.testcase import LogInterceptor
 
-    def _checkSettings(self,object,permissionname,acquire=0,roles=[]):
+
+class FSSecurityBase( RequestTest, FSDVTest, LogInterceptor ):
+
+    def _checkSettings(self, object, permissionname, acquire=0, roles=[]):
         # check the roles and acquire settings for a permission on an
         # object are as expected
-        happy=0
+        happy = 0
         for pstuff in object.ac_inherited_permissions(1):
-            name,value = pstuff[:2]
-            if name==permissionname:
-                p = Permission(name,value,object)
-                groles=p.getRoles(default=[])
-                acquired=isinstance(groles,ListType)
-                expected={}
+            name, value = pstuff[:2]
+            if name == permissionname:
+                p = Permission(name, value, object)
+                groles = p.getRoles(default=[])
+                acquired = isinstance(groles, list)
+                expected = {}
                 for role in roles:
-                    expected[role]=1
-                got={}
+                    expected[role] = 1
+                got = {}
                 for role in groles:
-                    got[role]=1
-                self.assertEqual((acquire,expected),(acquired,got))
-                happy=1
+                    got[role] = 1
+                self.assertEqual((acquire, expected), (acquired, got))
+                happy = 1
         if not happy:
-            raise ValueError,"'%s' not found in permissions: %s" % (permissionname,all_names)
+            raise ValueError("'%s' not found in permissions: %s"
+                             % (permissionname, all_names))
 
     def setUp( self ):
         # initialise skins
@@ -50,11 +55,13 @@ class FSSecurityBase( RequestTest, FSDVTest ):
     def tearDown( self ):
         RequestTest.tearDown(self)
         FSDVTest.tearDown(self)
-        
-class FSSecurityTests( FSSecurityBase ):
+        self._ignore_log_errors()
+
+
+class FSSecurityTests( FSSecurityBase, LogInterceptor ):
 
     def test_basicPermissions( self ):
-        """ Test basic FS permissions """
+        # Test basic FS permissions
         # check a normal method is as we'd expect
         self._checkSettings(self.ob.fake_skin.test1,'View',1,[])
         # now do some checks on the method with FS permissions
@@ -62,16 +69,18 @@ class FSSecurityTests( FSSecurityBase ):
         self._checkSettings(self.ob.fake_skin.test4,'Access contents information',0,[])
 
     def test_invalidPermissionNames( self ):
-        """ Test for an invalid permission name """
+        import zLOG
+        self._catch_log_errors(zLOG.ERROR)
+        # Test for an invalid permission name
         # baseline
         self._checkSettings(self.ob.fake_skin.test5,'View',1,[])
         # add .rpm with dodgy permission name
         self._writeFile('test5.py.security','Access stoopid contents::')
         # check baseline
         self._checkSettings(self.ob.fake_skin.test5,'View',1,[])
-        
+
     def test_invalidAcquireNames( self ):
-        """ Test for an invalid spelling of acquire """
+        # Test for an invalid spelling of acquire
         # baseline
         self._checkSettings(self.ob.fake_skin.test5,'View',1,[])
         # add dodgy .rpm
@@ -82,18 +91,18 @@ class FSSecurityTests( FSSecurityBase ):
 if DevelopmentMode:
 
     class DebugModeTests( FSSecurityBase ):
-        
+
         def test_addPRM( self ):
-            """ Test adding of a .security """
+            # Test adding of a .security
             # baseline
             self._checkSettings(self.ob.fake_skin.test5,'View',1,[])
             # add
             self._writeFile('test5.py.security','View:acquire:Manager')
-            # test            
+            # test
             self._checkSettings(self.ob.fake_skin.test5,'View',1,['Manager'])
 
         def test_delPRM( self ):
-            """ Test deleting of a .security """
+            # Test deleting of a .security
             # baseline
             self._checkSettings(self.ob.fake_skin.test5,'View',1,[])
             self._writeFile('test5.py.security','View:acquire:Manager')
@@ -104,24 +113,23 @@ if DevelopmentMode:
             self._checkSettings(self.ob.fake_skin.test5,'View',1,[])
 
         def test_editPRM( self ):
-            """ Test editing a .security """
+            # Test editing a .security
             # we need to wait a second here or the mtime will actually
             # have the same value as set in the last test.
             # Maybe someone brainier than me can figure out a way to make this
-            # suck less :-(            
+            # suck less :-(
             sleep(1)
-            
+
             # baseline
             self._writeFile('test5.py.security','View::Manager,Anonymous')
-            self._checkSettings(self.ob.fake_skin.test5,'View',0,['Manager','Anonymous'])           
+            self._checkSettings(self.ob.fake_skin.test5,'View',0,['Manager','Anonymous'])
             # edit
             self._writeFile('test5.py.security','View:acquire:Manager')
             # test
             self._checkSettings(self.ob.fake_skin.test5,'View',1,['Manager'])
 
-
         def test_DelAddEditPRM( self ):
-            """ Test deleting, then adding, then editing a .security file """
+            # Test deleting, then adding, then editing a .security file
             # baseline
             self._writeFile('test5.py.security','View::Manager')
             # delete
@@ -132,7 +140,7 @@ if DevelopmentMode:
             # have the same value, no human makes two edits in less
             # than a second ;-)
             sleep(1)
-            
+
             # add back
             self._writeFile('test5.py.security','View::Manager,Anonymous')
             self._checkSettings(self.ob.fake_skin.test5,'View',0,['Manager','Anonymous'])
@@ -147,15 +155,12 @@ else:
     class DebugModeTests( FSSecurityBase ):
         pass
 
+
 def test_suite():
     return TestSuite((
         makeSuite(FSSecurityTests),
-        makeSuite(DebugModeTests),        
+        makeSuite(DebugModeTests),
         ))
 
 if __name__ == '__main__':
     main(defaultTest='test_suite')
-
-
-
-

@@ -1,31 +1,33 @@
 ##############################################################################
 #
 # Copyright (c) 2001 Zope Corporation and Contributors. All Rights Reserved.
-# 
+#
 # This software is subject to the provisions of the Zope Public License,
-# Version 2.0 (ZPL).  A copy of the ZPL should accompany this distribution.
+# Version 2.1 (ZPL).  A copy of the ZPL should accompany this distribution.
 # THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL EXPRESS OR IMPLIED
 # WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND FITNESS
-# FOR A PARTICULAR PURPOSE
-# 
+# FOR A PARTICULAR PURPOSE.
+#
 ##############################################################################
 """ Customizable properties that come from the filesystem.
 
-$Id: FSPropertiesObject.py,v 1.2 2003/10/24 12:25:21 philikon Exp $
+$Id: FSPropertiesObject.py 37356 2005-07-21 00:05:08Z jens $
 """
-
 import Globals
-import Acquisition
+from AccessControl import ClassSecurityInfo
+from Acquisition import ImplicitAcquisitionWrapper
 from OFS.Folder import Folder
 from OFS.PropertyManager import PropertyManager
 from ZPublisher.Converters import get_converter
-from AccessControl import ClassSecurityInfo
 
-from utils import _dtmldir
-from DirectoryView import registerFileExtension, registerMetaType, expandpath
-from Permissions import ViewManagementScreens
+from DirectoryView import registerFileExtension
+from DirectoryView import registerMetaType
 from FSObject import FSObject
+from Permissions import ViewManagementScreens
+from utils import _dtmldir
+from utils import expandpath
+
 
 class FSPropertiesObject (FSObject, PropertyManager):
     """FSPropertiesObjects simply hold properties."""
@@ -33,7 +35,7 @@ class FSPropertiesObject (FSObject, PropertyManager):
     meta_type = 'Filesystem Properties Object'
 
     manage_options = ({'label':'Customize', 'action':'manage_main'},)
-    
+
     security = ClassSecurityInfo()
 
     security.declareProtected(ViewManagementScreens, 'manage_main')
@@ -63,7 +65,7 @@ class FSPropertiesObject (FSObject, PropertyManager):
             folder = self.restrictedTraverse(fpath)
             RESPONSE.redirect('%s/%s/manage_propertiesForm' % (
                 folder.absolute_url(), self.getId()))
-    
+
     def _createZODBClone(self):
         """Create a ZODB (editable) equivalent of this object."""
         # Create a Folder to hold the properties.
@@ -83,11 +85,10 @@ class FSPropertiesObject (FSObject, PropertyManager):
 
     def _readFile(self, reparse):
         """Read the data from the filesystem.
-        
+
         Read the file (indicated by exandpath(self._filepath), and parse the
         data if necessary.
         """
-
         fp = expandpath(self._filepath)
 
         file = open(fp, 'r')    # not 'rb', as this is a text file!
@@ -110,7 +111,7 @@ class FSPropertiesObject (FSObject, PropertyManager):
             try:
                 propname, proptv = line.split(':',1)
                 #XXX multi-line properties?
-                proptype, propvstr = proptv.split( '=', 1 ) 
+                proptype, propvstr = proptv.split( '=', 1 )
                 propname = propname.strip()
                 proptype = proptype.strip()
                 propvstr = propvstr.strip()
@@ -127,15 +128,14 @@ class FSPropertiesObject (FSObject, PropertyManager):
             except:
                 raise ValueError, ( 'Error processing line %s of %s:\n%s'
                                   % (lino,fp,line) )
-        self._properties = tuple(map)            
+        self._properties = tuple(map)
 
     if Globals.DevelopmentMode:
         # Provide an opportunity to update the properties.
         def __of__(self, parent):
-            self = Acquisition.ImplicitAcquisitionWrapper(self, parent)
+            self = ImplicitAcquisitionWrapper(self, parent)
             self._updateFromFS()
             return self
-
 
 Globals.InitializeClass(FSPropertiesObject)
 

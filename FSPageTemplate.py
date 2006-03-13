@@ -1,49 +1,46 @@
 ##############################################################################
 #
 # Copyright (c) 2001 Zope Corporation and Contributors. All Rights Reserved.
-# 
+#
 # This software is subject to the provisions of the Zope Public License,
-# Version 2.0 (ZPL).  A copy of the ZPL should accompany this distribution.
+# Version 2.1 (ZPL).  A copy of the ZPL should accompany this distribution.
 # THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL EXPRESS OR IMPLIED
 # WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND FITNESS
-# FOR A PARTICULAR PURPOSE
-# 
-##########################################################################
-"""Customizable page templates that come from the filesystem.
+# FOR A PARTICULAR PURPOSE.
+#
+##############################################################################
+""" Customizable page templates that come from the filesystem.
 
-$Id: FSPageTemplate.py,v 1.6 2005/03/16 16:38:29 faassen Exp $
+$Id: FSPageTemplate.py 38457 2005-09-13 18:15:07Z jens $
 """
 
-from string import split, replace
-from os import stat
 import re, sys
 
-import Globals, Acquisition
-from DateTime import DateTime
+import Globals
 from DocumentTemplate.DT_Util import html_quote
-from Acquisition import aq_parent
 from AccessControl import getSecurityManager, ClassSecurityInfo
+from OFS.Cache import Cacheable
 from Shared.DC.Scripts.Script import Script
 from Products.PageTemplates.PageTemplate import PageTemplate
 from Products.PageTemplates.ZopePageTemplate import ZopePageTemplate, Src
 
-from DirectoryView import registerFileExtension, registerMetaType, expandpath
-from Permissions import ViewManagementScreens
-from Permissions import View
 from Permissions import FTPAccess
+from Permissions import View
+from Permissions import ViewManagementScreens
+from DirectoryView import registerFileExtension
+from DirectoryView import registerMetaType
 from FSObject import FSObject
-from utils import getToolByName, _setCacheHeaders
+from utils import _setCacheHeaders, _checkConditionalGET
+from utils import expandpath
 
-xml_detect_re = re.compile('^\s*<\?xml\s+')
-
-from OFS.Cache import Cacheable
-
+xml_detect_re = re.compile('^\s*<\?xml\s+(?:[^>]*?encoding=["\']([^"\'>]+))?')
 _marker = []  # Create a new marker object.
+
 
 class FSPageTemplate(FSObject, Script, PageTemplate):
     "Wrapper for Page Template"
-     
+
     meta_type = 'Filesystem Page Template'
 
     _owner = None  # Unowned
@@ -54,7 +51,7 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
             {'label':'Test', 'action':'ZScriptHTML_tryForm'},
             )
             +Cacheable.manage_options
-        ) 
+        )
 
     security = ClassSecurityInfo()
     security.declareObjectProtected(View)
@@ -82,19 +79,26 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
     def _readFile(self, reparse):
         fp = expandpath(self._filepath)
         file = open(fp, 'r')    # not 'rb', as this is a text file!
-        try: 
+        try:
             data = file.read()
-        finally: 
+        finally:
             file.close()
+
         if reparse:
-            if xml_detect_re.match(data):
-                # Smells like xml
-                self.content_type = 'text/xml'
-            else:
-                try:
-                    del self.content_type
-                except (AttributeError, KeyError):
-                    pass
+            # If we already have a content_type set it must come from a
+            # .metadata file and we should always honor that. The content
+            # type is initialized as text/html by default, so we only
+            # attempt further detection if the default is encountered.
+            # One previous misbehavior remains: It is not possible to
+            # force a text./html type if parsing detects it as XML.
+            if getattr(self, 'content_type', 'text/html') == 'text/html':
+                xml_info = xml_detect_re.match(data)
+                if xml_info:
+                    # Smells like xml
+                    # set "content_type" from the XML declaration
+                    encoding = xml_info.group(1) or 'utf-8'
+                    self.content_type = 'text/xml; charset=%s' % encoding
+
             self.write(data)
 
     security.declarePrivate('read')
@@ -120,30 +124,30 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
 
     def pt_render(self, source=0, extra_context={}):
         self._updateFromFS()  # Make sure the template has been loaded.
-        try:
-            result = FSPageTemplate.inheritedAttribute('pt_render')(
-                                    self, source, extra_context
-                                    )
-            if not source:
-                _setCacheHeaders(self, extra_context)
-            return result
 
-        except RuntimeError:
-            if Globals.DevelopmentMode:
-                err = FSPageTemplate.inheritedAttribute( 'pt_errors' )( self )
-                if not err:
-                    err = sys.exc_info()
-                err_type = err[0]
-                err_msg = '<pre>%s</pre>' % replace( str(err[1]), "\'", "'" )
-                msg = 'FS Page Template %s has errors: %s.<br>%s' % (
-                    self.id, err_type, html_quote(err_msg) )
-                raise RuntimeError, msg
-            else:
-                raise
-                
+        if not source:
+            # If we have a conditional get, set status 304 and return
+            # no content
+            if _checkConditionalGET(self, extra_context):
+                return ''
+        
+        result = FSPageTemplate.inheritedAttribute('pt_render')(
+                                self, source, extra_context
+                                )
+        if not source:
+            _setCacheHeaders(self, extra_context)
+        return result
+
+    security.declareProtected(ViewManagementScreens, 'pt_source_file')
+    def pt_source_file(self):
+
+        """ Return a file name to be compiled into the TAL code.
+        """
+        return 'file:%s' % self._filepath
+
     security.declarePrivate( '_ZPT_exec' )
     _ZPT_exec = ZopePageTemplate._exec.im_func
-    
+
     security.declarePrivate( '_exec' )
     def _exec(self, bound_names, args, kw):
         """Call a FSPageTemplate"""
@@ -153,7 +157,7 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
             response = None
         # Read file first to get a correct content_type default value.
         self._updateFromFS()
-        
+
         if not kw.has_key('args'):
             kw['args'] = args
         bound_names['options'] = kw
@@ -164,7 +168,7 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
                 response.setHeader('content-type', self.content_type)
         except AttributeError:
             pass
-            
+
         security=getSecurityManager()
         bound_names['user'] = security.getUser()
 
@@ -175,7 +179,7 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
             keyset = {
                       # Why oh why?
                       # All this code is cut and paste
-                      # here to make sure that we 
+                      # here to make sure that we
                       # dont call _getContext and hence can't cache
                       # Annoying huh?
                       'here': self.aq_parent.getPhysicalPath(),
@@ -195,9 +199,9 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
             return result
         finally:
             security.removeContext(self)
-        
+
         return result
- 
+
     # Copy over more methods
     security.declareProtected(FTPAccess, 'manage_FTPget')
     manage_FTPget = ZopePageTemplate.manage_FTPget.im_func
@@ -207,7 +211,7 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
     getSize = get_size
 
     security.declareProtected(ViewManagementScreens, 'PrincipiaSearchSource')
-    PrincipiaSearchSource = ZopePageTemplate.PrincipiaSearchSource
+    PrincipiaSearchSource = ZopePageTemplate.PrincipiaSearchSource.im_func
 
     security.declareProtected(ViewManagementScreens, 'document_src')
     document_src = ZopePageTemplate.document_src.im_func
@@ -216,12 +220,10 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
 
     ZScriptHTML_tryParams = ZopePageTemplate.ZScriptHTML_tryParams.im_func
 
+    source_dot_xml = Src()
 
-d = FSPageTemplate
-o = Src()
-setattr(d, 'source.xml', o)
-setattr(d, 'source.html', o)
-
+setattr(FSPageTemplate, 'source.xml',  FSPageTemplate.source_dot_xml)
+setattr(FSPageTemplate, 'source.html', FSPageTemplate.source_dot_xml)
 Globals.InitializeClass(FSPageTemplate)
 
 registerFileExtension('pt', FSPageTemplate)
@@ -229,4 +231,3 @@ registerFileExtension('zpt', FSPageTemplate)
 registerFileExtension('html', FSPageTemplate)
 registerFileExtension('htm', FSPageTemplate)
 registerMetaType('Page Template', FSPageTemplate)
-

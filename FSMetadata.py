@@ -1,12 +1,25 @@
+##############################################################################
+#
+# Copyright (c) 2003 Zope Corporation and Contributors. All Rights Reserved.
+#
+# This software is subject to the provisions of the Zope Public License,
+# Version 2.1 (ZPL).  A copy of the ZPL should accompany this distribution.
+# THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL EXPRESS OR IMPLIED
+# WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND FITNESS
+# FOR A PARTICULAR PURPOSE.
+#
+##############################################################################
 """ Handles reading the properties for an object that comes from the filesystem.
 
-$Id: FSMetadata.py,v 1.1 2003/10/24 12:25:21 philikon Exp $
+$Id: FSMetadata.py 40136 2005-11-15 17:41:36Z jens $
 """
 
 from zLOG import LOG, ERROR
 from sys import exc_info
 from os.path import exists
 from ConfigParser import ConfigParser
+from warnings import warn
 
 import re
 
@@ -35,8 +48,8 @@ class FSMetadata:
         self._filename = filename
 
     def read(self):
-        """ Find the files to read, either the old
-        security and properties type or the new metadata type """
+        """ Find the files to read, either the old security and
+        properties type or the new metadata type """
         filename = self._filename + '.metadata'
         if exists(filename):
             # found the new type, lets use that
@@ -65,13 +78,23 @@ class FSMetadata:
     # private API
     def _readMetadata(self):
         """ Read the new file format using ConfigParser """
-        cfg = CMFConfigParser()
-        cfg.read(self._filename + '.metadata')
+        self._properties = {}
+        self._security = {}
 
-        # the two sections we care about
-        self._properties = self._getSectionDict(cfg, 'default')
-        self._security = self._getSectionDict(cfg, 'security',
-                                              self._securityParser)
+        try:
+            cfg = CMFConfigParser()
+            cfg.read(self._filename + '.metadata')
+
+            # the two sections we care about
+            self._properties = self._getSectionDict(cfg, 'default')
+            self._security = self._getSectionDict(cfg, 'security',
+                                                  self._securityParser)
+        except:
+            LOG('FSMetadata',
+                 ERROR,
+                'Error parsing .metadata file',
+                 error=exc_info())
+
         # to add in a new value such as proxy roles,
         # just add in the section, call it using getSectionDict
         # if you need a special parser for some whacky
@@ -88,7 +111,7 @@ class FSMetadata:
 
         Security lines must be of the format
 
-        (0|1):Role[,Role...]
+        Permission = (0|1):Role[,Role...]
 
         Where 0|1 is the acquire permission setting
         and Role is the roles for this permission
@@ -100,7 +123,7 @@ class FSMetadata:
 
         acquire, roles = data.split(':')
         roles = [r.strip() for r in roles.split(',') if r.strip()]
-        return (acquire, roles)
+        return (int(acquire), roles)
 
     def _getSectionDict(self, cfg, section, parser=None):
         """
@@ -136,6 +159,8 @@ class FSMetadata:
         except IOError:
             return None
         else:
+            warn('.properties objects will disappear in CMF 2.0 - Use '
+                 '.metadata objects instead.', DeprecationWarning)
             lines = f.readlines()
             f.close()
             props = {}
@@ -164,6 +189,8 @@ class FSMetadata:
         except IOError:
             return None
         else:
+            warn('.security objects will disappear in CMF 2.0 - Use '
+                 '.metadata objects instead.', DeprecationWarning)
             lines = f.readlines()
             f.close()
             prm = {}
@@ -172,7 +199,7 @@ class FSMetadata:
                     c1 = line.index(':')+1
                     c2 = line.index(':',c1)
                     permission = line[:c1-1]
-                    acquire = not not line[c1:c2] # get boolean
+                    acquire = bool(line[c1:c2])
                     proles = line[c2+1:].split(',')
                     roles=[]
                     for role in proles:
