@@ -1,1 +1,1 @@
-FileSystemSite 1.6
+FileSystemSite 2.0
