@@ -1,5 +1,5 @@
 
-AccessContentsInformation = 'Access Contents Information'
+AccessContentsInformation = 'Access contents information'
 ManagePortal = 'View management screens'
 View = 'View'
 ViewManagementScreens = ManagePortal

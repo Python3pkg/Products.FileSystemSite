@@ -1,5 +1,12 @@
  Changes
 
+  2.0 (unreleased)
+  
+    - updated with changes from newer version of CMF
+
+    - fixed permission name: "Access contents information" instead of
+      wrongly capitalized "Access Contents Information"
+
   1.4.2
 
     - Added support for Dieter Maurer's TrustedFSPythonScript.
