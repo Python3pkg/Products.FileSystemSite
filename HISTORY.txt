@@ -1,6 +1,6 @@
  Changes
 
-  2.0 (unreleased)
+  2.0
   
     - updated with changes from newer version of CMF
 

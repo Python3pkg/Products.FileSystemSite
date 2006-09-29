@@ -1,1 +1,1 @@
-FileSystemSite 2.0 (unreleased)
+FileSystemSite 2.0
