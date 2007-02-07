@@ -1,10 +1,5 @@
  Changes
 
-  2.1 (unreleased)
-
-    - Make compatible with Zope 2.10, break compatibility with previous Zope
-      versions.
-  
   2.0
   
     - updated with changes from newer version of CMF

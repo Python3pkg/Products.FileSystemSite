@@ -21,8 +21,10 @@ from AccessControl import ClassSecurityInfo
 from DateTime import DateTime
 from OFS.Cache import Cacheable
 from OFS.Image import File
-
-from zope.contenttype import guess_content_type
+try:
+    from zope.app.content_types import guess_content_type
+except ImportError: # BBB: for Zope < 2.9
+    from OFS.content_types import guess_content_type
 
 from DirectoryView import registerFileExtension
 from DirectoryView import registerMetaType
