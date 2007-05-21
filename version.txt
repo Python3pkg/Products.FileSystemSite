@@ -1,1 +1,1 @@
-FileSystemSite 2.1 (SVN/UNRELEASED)
+FileSystemSite 2.1
