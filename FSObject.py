@@ -15,6 +15,9 @@
 $Id: FSObject.py 37359 2005-07-21 13:58:23Z tiran $
 """
 
+from zope.interface import implements
+from interfaces import IFSObject
+
 from os import path, stat
 
 import Globals
@@ -44,6 +47,8 @@ class FSObject(Implicit, Item, RoleManager, Cacheable):
     DTMLMethod, but are not directly modifiable from the management
     interface. They provide means to create a TTW editable copy, however.
     """
+
+    implements(IFSObject)
 
     # Always empty for FS based, non-editable objects.
     title = ''

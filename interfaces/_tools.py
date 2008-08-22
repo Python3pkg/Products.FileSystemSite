@@ -1138,6 +1138,10 @@ class IDirectoryView(Interface):
     """ Directory views mount filesystem directories.
     """
 
+class IFSObject(Interface):
+    """An object in a directory view.
+    """
+
 
 class ISkinsContainer(Interface):
 
