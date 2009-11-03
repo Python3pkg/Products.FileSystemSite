@@ -46,7 +46,6 @@ from OFS.PropertySheets import PropertySheets
 from OFS.SimpleItem import SimpleItem
 from Products.PageTemplates.Expressions import getEngine
 from Products.PageTemplates.Expressions import SecureModuleImporter
-from StructuredText.StructuredText import HTML
 from thread import allocate_lock
 from webdav.common import rfc1123_date
 from exceptions import AccessControl_Unauthorized
@@ -765,14 +764,6 @@ def registerIcon(klass, iconspec, _prefix=None):
         setattr(misc_images, pid, MiscImage(pid, {}))
     getattr(misc_images, pid)[name]=icon
 
-security.declarePublic('format_stx')
-def format_stx( text, level=1 ):
-    """ Render STX to HTML.
-    """
-    warn('format_stx() will be removed in CMF 2.0. Please use '
-         'StructuredText.StructuredText.HTML instead.',
-         DeprecationWarning, stacklevel=2)
-    return HTML(text, level=level, header=0)
 
 #
 #   Metadata Keyword splitter utilities
