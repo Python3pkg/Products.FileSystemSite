@@ -5,7 +5,7 @@ Changes
 2.3 (unreleased)
 ----------------
 
-- ...
+- Remove .stx support, and unused interfaces to make it work on Zope 2.12.
 
 2.2 (2008/30/09)
 ----------------
