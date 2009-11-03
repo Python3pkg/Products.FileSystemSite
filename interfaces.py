@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# Copyright (c) 2001 Zope Corporation and Contributors. All Rights Reserved.
+# Copyright (c) 2005 Zope Corporation and Contributors. All Rights Reserved.
 #
 # This software is subject to the provisions of the Zope Public License,
 # Version 2.1 (ZPL).  A copy of the ZPL should accompany this distribution.
@@ -10,12 +10,19 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-""" Workflow tool interface.
+""" CMFCore tool interfaces.
 
-$Id: portal_workflow.py 38590 2005-09-24 15:24:32Z yuppie $
+$Id: _tools.py 40047 2005-11-11 09:06:05Z yuppie $
 """
 
-# BBB: module will be removed in CMF 2.2
-#      zope2 interfaces created on runtime:
-#      - portal_workflow
-#      - WorkflowDefinition
+from zope.interface import Interface
+
+
+class IDirectoryView(Interface):
+    """ Directory views mount filesystem directories.
+    """
+
+class IFSObject(Interface):
+    """An object in a directory view.
+    """
+
