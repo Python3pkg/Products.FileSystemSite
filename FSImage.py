@@ -15,7 +15,8 @@
 $Id: FSImage.py 41663 2006-02-18 13:57:52Z jens $
 """
 
-import Globals
+from App.class_init import InitializeClass
+from App.special_dtml import DTMLFile
 from DateTime import DateTime
 from AccessControl import ClassSecurityInfo
 from OFS.Cache import Cacheable
@@ -53,7 +54,7 @@ class FSImage(FSObject):
         FSObject.__init__(self, id, filepath, fullname, properties)
 
     security.declareProtected(ViewManagementScreens, 'manage_main')
-    manage_main = Globals.DTMLFile('custimage', _dtmldir)
+    manage_main = DTMLFile('custimage', _dtmldir)
     content_type = 'unknown/unknown'
 
     def _createZODBClone(self):
@@ -150,7 +151,7 @@ class FSImage(FSObject):
     security.declareProtected(FTPAccess, 'manage_FTPget')
     manage_FTPget = index_html
 
-Globals.InitializeClass(FSImage)
+InitializeClass(FSImage)
 
 registerFileExtension('gif', FSImage)
 registerFileExtension('jpg', FSImage)

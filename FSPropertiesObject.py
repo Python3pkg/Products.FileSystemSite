@@ -14,7 +14,9 @@
 
 $Id: FSPropertiesObject.py 37356 2005-07-21 00:05:08Z jens $
 """
-import Globals
+from Globals import DevelopmentMode
+from App.special_dtml import DTMLFile
+from App.class_init import InitializeClass
 from AccessControl import ClassSecurityInfo
 from Acquisition import ImplicitAcquisitionWrapper
 from OFS.Folder import Folder
@@ -39,7 +41,7 @@ class FSPropertiesObject (FSObject, PropertyManager):
     security = ClassSecurityInfo()
 
     security.declareProtected(ViewManagementScreens, 'manage_main')
-    manage_main = Globals.DTMLFile('custprops', _dtmldir)
+    manage_main = DTMLFile('custprops', _dtmldir)
 
     # Declare all (inherited) mutating methods private.
     security.declarePrivate('manage_addProperty')
@@ -130,14 +132,14 @@ class FSPropertiesObject (FSObject, PropertyManager):
                                   % (lino,fp,line) )
         self._properties = tuple(map)
 
-    if Globals.DevelopmentMode:
+    if DevelopmentMode:
         # Provide an opportunity to update the properties.
         def __of__(self, parent):
             self = ImplicitAcquisitionWrapper(self, parent)
             self._updateFromFS()
             return self
 
-Globals.InitializeClass(FSPropertiesObject)
+InitializeClass(FSPropertiesObject)
 
 registerFileExtension('props', FSPropertiesObject)
 registerMetaType('Properties Object', FSPropertiesObject)

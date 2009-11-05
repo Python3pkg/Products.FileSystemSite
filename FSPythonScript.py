@@ -20,8 +20,8 @@ import new
 from AccessControl import ClassSecurityInfo
 from AccessControl import getSecurityManager
 from ComputedAttribute import ComputedAttribute
-from Globals import DTMLFile
-from Globals import InitializeClass
+from App.special_dtml import DTMLFile
+from App.class_init import InitializeClass
 from OFS.Cache import Cacheable
 from Products.PythonScripts.PythonScript import PythonScript
 from Shared.DC.Scripts.Script import Script

@@ -20,7 +20,9 @@ from interfaces import IFSObject
 
 from os import path, stat
 
-import Globals
+from Globals import DevelopmentMode
+from App.class_init import InitializeClass
+from App.special_dtml import HTML
 from AccessControl import ClassSecurityInfo
 from AccessControl.Role import RoleManager
 from AccessControl.Permission import Permission
@@ -165,7 +167,7 @@ class FSObject(Implicit, Item, RoleManager, Cacheable):
     # running in debug mode.
     def _updateFromFS(self):
         parsed = self._parsed
-        if not parsed or Globals.DevelopmentMode:
+        if not parsed or DevelopmentMode:
             fp = expandpath(self._filepath)
             try:    mtime=stat(fp)[8]
             except: mtime=0
@@ -197,7 +199,7 @@ class FSObject(Implicit, Item, RoleManager, Cacheable):
         self._updateFromFS()
         return self._filepath
 
-Globals.InitializeClass(FSObject)
+InitializeClass(FSObject)
 
 
 class BadFile( FSObject ):
@@ -238,7 +240,7 @@ class BadFile( FSObject ):
 
     security = ClassSecurityInfo()
 
-    showError = Globals.HTML( BAD_FILE_VIEW )
+    showError = HTML( BAD_FILE_VIEW )
     security.declareProtected(ManagePortal, 'manage_showError')
     def manage_showError( self, REQUEST ):
         """
@@ -279,4 +281,4 @@ class BadFile( FSObject ):
         """
         return self.exc_str
 
-Globals.InitializeClass( BadFile )
+InitializeClass( BadFile )

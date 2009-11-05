@@ -16,7 +16,8 @@ $Id: FSFile.py 41776 2006-02-24 17:06:22Z shh $
 """
 
 import codecs
-import Globals
+from App.special_dtml import DTMLFile
+from App.class_init import InitializeClass
 from AccessControl import ClassSecurityInfo
 from DateTime import DateTime
 from OFS.Cache import Cacheable
@@ -53,7 +54,7 @@ class FSFile(FSObject):
         FSObject.__init__(self, id, filepath, fullname, properties)
 
     security.declareProtected(ViewManagementScreens, 'manage_main')
-    manage_main = Globals.DTMLFile('custfile', _dtmldir)
+    manage_main = DTMLFile('custfile', _dtmldir)
     content_type = 'unknown/unknown'
 
     def _createZODBClone(self):
@@ -159,7 +160,7 @@ class FSFile(FSObject):
     security.declareProtected(FTPAccess, 'manage_FTPget')
     manage_FTPget = index_html
 
-Globals.InitializeClass(FSFile)
+InitializeClass(FSFile)
 
 registerFileExtension('doc', FSFile)
 registerFileExtension('pdf', FSFile)

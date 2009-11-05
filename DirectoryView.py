@@ -24,11 +24,11 @@ from warnings import warn
 from AccessControl import ClassSecurityInfo
 from Acquisition import aq_inner, aq_parent
 from Globals import DevelopmentMode
-from Globals import DTMLFile
-from Globals import HTMLFile
-from Globals import InitializeClass
-from Globals import package_home
-from Globals import Persistent
+from App.special_dtml import DTMLFile
+from App.special_dtml import HTMLFile
+from App.class_init import InitializeClass
+from App.Common import package_home
+from Persistence import Persistent
 from OFS.Folder import Folder
 from OFS.ObjectManager import bad_id
 from zLOG import LOG, ERROR

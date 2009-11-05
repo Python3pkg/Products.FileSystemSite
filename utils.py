@@ -33,12 +33,12 @@ from Acquisition import aq_parent
 from Acquisition import Implicit
 from DateTime import DateTime
 from ExtensionClass import Base
-from Globals import HTMLFile
-from Globals import ImageFile
-from Globals import InitializeClass
-from Globals import MessageDialog
-from Globals import package_home
-from Globals import UNIQUE
+from App.special_dtml import HTMLFile
+from App.ImageFile import ImageFile
+from App.class_init import InitializeClass
+from App.Dialogs import MessageDialog
+from App.Common import package_home
+from OFS.ObjectManager import UNIQUE
 from OFS.misc_ import misc_ as misc_images
 from OFS.misc_ import Misc_ as MiscImage
 from OFS.PropertyManager import PropertyManager
