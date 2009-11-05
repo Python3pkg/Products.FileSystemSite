@@ -17,7 +17,8 @@ $Id: FSPageTemplate.py 38457 2005-09-13 18:15:07Z jens $
 
 import re, sys
 
-import Globals
+from App.special_dtml import DTMLFile
+from App.class_init import InitializeClass
 from DocumentTemplate.DT_Util import html_quote
 from AccessControl import getSecurityManager, ClassSecurityInfo
 from OFS.Cache import Cacheable
@@ -57,7 +58,7 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
     security.declareObjectProtected(View)
 
     security.declareProtected(ViewManagementScreens, 'manage_main')
-    manage_main = Globals.DTMLFile('dtml/custpt', globals())
+    manage_main = DTMLFile('dtml/custpt', globals())
 
     # Declare security for unprotected PageTemplate methods.
     security.declarePrivate('pt_edit', 'write')
@@ -224,7 +225,7 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
 
 setattr(FSPageTemplate, 'source.xml',  FSPageTemplate.source_dot_xml)
 setattr(FSPageTemplate, 'source.html', FSPageTemplate.source_dot_xml)
-Globals.InitializeClass(FSPageTemplate)
+InitializeClass(FSPageTemplate)
 
 registerFileExtension('pt', FSPageTemplate)
 registerFileExtension('zpt', FSPageTemplate)

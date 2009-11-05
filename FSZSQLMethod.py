@@ -15,7 +15,9 @@
 $Id: FSZSQLMethod.py 38006 2005-08-19 15:06:40Z urbanape $
 """
 
-import Globals
+from Globals import DevelopmentMode
+from App.special_dtml import DTMLFile
+from App.class_init import InitializeClass
 from AccessControl import ClassSecurityInfo
 from Acquisition import ImplicitAcquisitionWrapper
 from Products.ZSQLMethods.SQL import SQL
@@ -54,7 +56,7 @@ class FSZSQLMethod(SQL, FSObject):
     manage=None
 
     security.declareProtected(ViewManagementScreens, 'manage_customise')
-    manage_customise = Globals.DTMLFile('custzsql', _dtmldir)
+    manage_customise = DTMLFile('custzsql', _dtmldir)
 
     def __init__(self, id, filepath, fullname=None, properties=None):
         FSObject.__init__(self, id, filepath, fullname, properties)
@@ -129,7 +131,7 @@ class FSZSQLMethod(SQL, FSObject):
         # do we need to do anything on reparse?
 
 
-    if Globals.DevelopmentMode:
+    if DevelopmentMode:
         # Provide an opportunity to update the properties.
         def __of__(self, parent):
             try:
@@ -144,7 +146,7 @@ class FSZSQLMethod(SQL, FSObject):
                     error=sys.exc_info())
                 raise
 
-Globals.InitializeClass(FSZSQLMethod)
+InitializeClass(FSZSQLMethod)
 
 registerFileExtension('zsql', FSZSQLMethod)
 registerMetaType('Z SQL Method', FSZSQLMethod)
