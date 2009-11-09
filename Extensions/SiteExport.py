@@ -5,7 +5,8 @@
 import os
 from os import path
 from Acquisition import aq_base, aq_inner, aq_parent
-from Globals import package_home
+from App.Common import package_home
+
 from Interface import Base
 
 class IExporter: 
