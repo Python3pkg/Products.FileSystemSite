@@ -27,7 +27,7 @@ class ProviderExpression(expressions.StringExpr):
     zope.interface.implements(interfaces.ITALESProviderExpression)
 
     def __call__(self, econtext):
-        name = super(TALESProviderExpression, self).__call__(econtext)
+        name = super(ProviderExpression, self).__call__(econtext)
         view = econtext.vars['view']
         context = view.context
         request = view.request
