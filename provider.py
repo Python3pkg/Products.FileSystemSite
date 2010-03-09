@@ -43,7 +43,7 @@ class ProviderExpression(expressions.StringExpr):
         # add the __name__ attribute if it implements ILocation
         if ILocation.providedBy(provider):
             provider.__name__ = name
-        print provider
+
         # Insert the data gotten from the context
         addTALNamespaceData(provider, econtext)
 
