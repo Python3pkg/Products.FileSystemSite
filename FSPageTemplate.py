@@ -25,6 +25,7 @@ from OFS.Cache import Cacheable
 from Shared.DC.Scripts.Script import Script
 from Products.PageTemplates.PageTemplate import PageTemplate
 from Products.PageTemplates.ZopePageTemplate import ZopePageTemplate, Src
+from Products.PageTemplates.Expressions import getEngine
 
 from Permissions import FTPAccess
 from Permissions import View
@@ -34,6 +35,10 @@ from DirectoryView import registerMetaType
 from FSObject import FSObject
 from utils import _setCacheHeaders, _checkConditionalGET
 from utils import expandpath
+from provider import TALESProviderExpression
+
+from zope import component
+from interfaces import IFakeView
 
 xml_detect_re = re.compile('^\s*<\?xml\s+(?:[^>]*?encoding=["\']([^"\'>]+))?')
 _marker = []  # Create a new marker object.
@@ -125,13 +130,12 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
 
     def pt_render(self, source=0, extra_context={}):
         self._updateFromFS()  # Make sure the template has been loaded.
-
         if not source:
             # If we have a conditional get, set status 304 and return
             # no content
             if _checkConditionalGET(self, extra_context):
                 return ''
-        
+
         result = FSPageTemplate.inheritedAttribute('pt_render')(
                                 self, source, extra_context
                                 )
@@ -162,7 +166,6 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
         if not kw.has_key('args'):
             kw['args'] = args
         bound_names['options'] = kw
-
         try:
             response = self.REQUEST.RESPONSE
             if not response.headers.has_key('content-type'):
@@ -172,6 +175,16 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
 
         security=getSecurityManager()
         bound_names['user'] = security.getUser()
+
+        # Silva hack to migrate old templates to regular views
+        context = self.REQUEST.get('model', self.aq_parent)
+        view = component.queryMultiAdapter(
+            (context, self.REQUEST), IFakeView, name=self.id)
+        if view is None:
+            view = component.queryMultiAdapter(
+                (context, self.REQUEST), IFakeView)
+        if view is not None:
+            bound_names['view'] = view
 
         # Retrieve the value from the cache.
         keyset = None
@@ -218,6 +231,11 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
     document_src = ZopePageTemplate.document_src.im_func
 
     pt_getContext = ZopePageTemplate.pt_getContext.im_func
+    def pt_getEngine(self):
+        e = getEngine()
+        # We replace provider implementation with one safe
+        e.types['provider'] = TALESProviderExpression
+        return e
 
     ZScriptHTML_tryParams = ZopePageTemplate.ZScriptHTML_tryParams.im_func
 

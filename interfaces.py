@@ -26,3 +26,7 @@ class IFSObject(Interface):
     """An object in a directory view.
     """
 
+
+class IFakeView(Interface):
+    """A fake view.
+    """
