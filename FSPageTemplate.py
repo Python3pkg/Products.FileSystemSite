@@ -35,7 +35,7 @@ from DirectoryView import registerMetaType
 from FSObject import FSObject
 from utils import _setCacheHeaders, _checkConditionalGET
 from utils import expandpath
-from provider import TALESProviderExpression
+from provider import ProviderExpression
 
 from zope import component
 from interfaces import IFakeView
@@ -234,7 +234,7 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
     def pt_getEngine(self):
         e = getEngine()
         # We replace provider implementation with one safe
-        e.types['provider'] = TALESProviderExpression
+        e.types['provider'] = ProviderExpression
         return e
 
     ZScriptHTML_tryParams = ZopePageTemplate.ZScriptHTML_tryParams.im_func
