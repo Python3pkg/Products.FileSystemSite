@@ -2,10 +2,14 @@
 Changes
 =======
 
-2.3 (unreleased)
+2.3 (2010/07/15)
 ----------------
 
 - Remove .stx support, and unused interfaces to make it work on Zope 2.12.
+
+- Remove deprecated imports on Zope 2.12.
+
+- Add support for fake views on FSPageTemplates.
 
 2.2 (2008/30/09)
 ----------------
