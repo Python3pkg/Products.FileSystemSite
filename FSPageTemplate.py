@@ -15,11 +15,10 @@
 $Id: FSPageTemplate.py 38457 2005-09-13 18:15:07Z jens $
 """
 
-import re, sys
+import re
 
 from App.special_dtml import DTMLFile
 from App.class_init import InitializeClass
-from DocumentTemplate.DT_Util import html_quote
 from AccessControl import getSecurityManager, ClassSecurityInfo
 from OFS.Cache import Cacheable
 from Shared.DC.Scripts.Script import Script
@@ -38,7 +37,9 @@ from utils import expandpath
 from provider import ProviderExpression
 
 from zope import component
-from interfaces import IFakeView
+from zope.interface import alsoProvides
+from zope.interface.interfaces import IInterface
+from Products.FileSystemSite.interfaces import IFakeView
 
 xml_detect_re = re.compile('^\s*<\?xml\s+(?:[^>]*?encoding=["\']([^"\'>]+))?')
 _marker = []  # Create a new marker object.
@@ -183,6 +184,12 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
         if view is None:
             view = component.queryMultiAdapter(
                 (context, self.REQUEST), IFakeView)
+        interface_identifier = self.__dict__.get('interface')
+        if interface_identifier:
+            interface = component.queryUtility(
+                IInterface, interface_identifier)
+            if interface is not None:
+                alsoProvides(view, interface)
         if view is not None:
             bound_names['view'] = view
 
