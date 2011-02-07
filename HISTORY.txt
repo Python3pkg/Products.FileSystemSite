@@ -2,7 +2,13 @@
 Changes
 =======
 
-2.3 (2010/07/15)
+2.3.1 (2010-02-07)
+------------------
+
+- Permit to fake views to provide an interface defined in the
+  ``.metadata`` file of the corresponding template.
+
+2.3 (2010-07-15)
 ----------------
 
 - Remove .stx support, and unused interfaces to make it work on Zope 2.12.
