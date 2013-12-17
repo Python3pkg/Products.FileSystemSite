@@ -5,7 +5,7 @@ version = '2.3.2dev'
 
 setup(name='Products.FileSystemSite',
       version=version,
-      description="File system based site",
+      description="Make available in ZODB file system resources in Zope 2",
       long_description=open("README.txt").read() + "\n" +
                        open(os.path.join("Products", "FileSystemSite", "HISTORY.txt")).read(),
       classifiers=[
@@ -17,7 +17,7 @@ setup(name='Products.FileSystemSite',
       keywords='file system site zope2',
       author='Zope community',
       author_email='info@infrae.com',
-      url='http://infrae.com/products/silva',
+      url='https://github.com/infrae/Products.FileSystemSite',
       license='ZPL',
       packages=find_packages(exclude=['ez_setup']),
       namespace_packages=['Products'],

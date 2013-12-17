@@ -1,3 +1,4 @@
+==============
 FileSystemSite
 ==============
 
@@ -8,5 +9,14 @@ refer to existing files on the file-system.
 
 For more information, look at the CMFCore documentation.
 
+.. note::
+
+   This is a deprecated extension.
+
+Code repository
+===============
+
+The code for this extension can be found in Git:
+https://github.com/infrae/Products.FileSystemSite
 
 
