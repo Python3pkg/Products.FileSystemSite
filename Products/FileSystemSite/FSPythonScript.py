@@ -49,7 +49,7 @@ class FSPythonScript (FSObject, Script):
 
     meta_type = 'Filesystem Script (Python)'
     _params = _body = ''
-    _v_f = None
+    _v_ft = None
     _proxy_roles = ()
 
     _owner = None  # Unowned
@@ -134,7 +134,7 @@ class FSPythonScript (FSObject, Script):
                 return result
 
         # Prepare the function.
-        f = self._v_f
+        f = self._v_ft
         if f is None:
             # The script has errors.
             __traceback_supplement__ = (
@@ -145,17 +145,18 @@ class FSPythonScript (FSObject, Script):
         # In normal PythonScripts, every thread has its own
         # copy of the function.  But in FSPythonScripts
         # there is only one copy.  So here's another way.
-        new_globals = f.func_globals.copy()
+        new_globals = f[1].copy() # f[1] == func_defaults
         new_globals['__traceback_supplement__'] = (
             FSPythonScriptTracebackSupplement, self)
         new_globals['__file__'] = self._filepath
         if bound_names:
             new_globals.update(bound_names)
-        if f.func_defaults:
-            f = new.function(f.func_code, new_globals, f.func_name,
-                             f.func_defaults)
+        if f[1]: # f[1] == func_defaults
+            # f == (f.func_code, g, f.func_defaults or ())
+            f = new.function(f[0], new_globals, None,
+                             f[2])
         else:
-            f = new.function(f.func_code, new_globals, f.func_name)
+            f = new.function(f[0], new_globals, None)
 
         # Execute the function in a new security context.
         security=getSecurityManager()
@@ -229,11 +230,11 @@ class FSPythonScript (FSObject, Script):
         ps = PythonScript(self.id)
         ps.write(text)
         if compile:
-            ps._makeFunction(1)
-            self._v_f = f = ps._v_f
+            ps._makeFunction()
+            self._v_ft= f = ps._v_ft
             if f is not None:
-                self.func_code = f.func_code
-                self.func_defaults = f.func_defaults
+                self.func_code = ps.func_code
+                self.func_defaults = ps.func_defaults
             else:
                 # There were errors in the compile.
                 # No signature.
