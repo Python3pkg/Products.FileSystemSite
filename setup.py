@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import os
 
-version = '2.3.3dev'
+version = '2.4'
 
 setup(name='Products.FileSystemSite',
       version=version,
