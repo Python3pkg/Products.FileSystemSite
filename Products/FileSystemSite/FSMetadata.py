@@ -18,7 +18,7 @@ $Id: FSMetadata.py 40136 2005-11-15 17:41:36Z jens $
 from zLOG import LOG, ERROR
 from sys import exc_info
 from os.path import exists
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from warnings import warn
 
 import re
@@ -118,8 +118,8 @@ class FSMetadata:
         eg: 1:Manager or 0:Manager,Anonymous
         """
         if data.find(':') < 1:
-            raise ValueError, "The security declaration of file " + \
-                  "%r is in the wrong format" % self._filename
+            raise ValueError("The security declaration of file " + \
+                  "%r is in the wrong format" % self._filename)
 
         acquire, roles = data.split(':')
         roles = [r.strip() for r in roles.split(',') if r.strip()]

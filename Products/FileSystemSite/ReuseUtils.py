@@ -11,9 +11,9 @@ def rebindFunction(f,rebindDir=None,**rebinds):
   if rebinds: d.update(rebinds)
   if not d: return f
   f= getattr(f,'im_func',f)
-  fd= f.func_globals.copy()
+  fd= f.__globals__.copy()
   fd.update(d)
-  nf= function(f.func_code,fd,f.func_name,f.func_defaults or ())
+  nf= function(f.__code__,fd,f.__name__,f.__defaults__ or ())
   nf.__doc__= f.__doc__
   if f.__dict__ is not None: nf.__dict__= f.__dict__.copy()
   return nf

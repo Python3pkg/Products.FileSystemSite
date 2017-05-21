@@ -26,15 +26,15 @@ from Products.PageTemplates.PageTemplate import PageTemplate
 from Products.PageTemplates.ZopePageTemplate import ZopePageTemplate, Src
 from Products.PageTemplates.Expressions import getEngine
 
-from Permissions import FTPAccess
-from Permissions import View
-from Permissions import ViewManagementScreens
-from DirectoryView import registerFileExtension
-from DirectoryView import registerMetaType
-from FSObject import FSObject
-from utils import _setCacheHeaders, _checkConditionalGET
-from utils import expandpath
-from provider import ProviderExpression
+from .Permissions import FTPAccess
+from .Permissions import View
+from .Permissions import ViewManagementScreens
+from .DirectoryView import registerFileExtension
+from .DirectoryView import registerMetaType
+from .FSObject import FSObject
+from .utils import _setCacheHeaders, _checkConditionalGET
+from .utils import expandpath
+from .provider import ProviderExpression
 
 from zope import component
 from zope.interface import alsoProvides
@@ -119,7 +119,7 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
     expand = 0
 
     func_defaults = None
-    func_code = ZopePageTemplate.func_code
+    func_code = ZopePageTemplate.__code__
     _default_bindings = ZopePageTemplate._default_bindings
 
     security.declareProtected(View, '__call__')
@@ -152,7 +152,7 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
         return 'file:%s' % self._filepath
 
     security.declarePrivate( '_ZPT_exec' )
-    _ZPT_exec = ZopePageTemplate._exec.im_func
+    _ZPT_exec = ZopePageTemplate._exec.__func__
 
     security.declarePrivate( '_exec' )
     def _exec(self, bound_names, args, kw):
@@ -164,12 +164,12 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
         # Read file first to get a correct content_type default value.
         self._updateFromFS()
 
-        if not kw.has_key('args'):
+        if 'args' not in kw:
             kw['args'] = args
         bound_names['options'] = kw
         try:
             response = self.REQUEST.RESPONSE
-            if not response.headers.has_key('content-type'):
+            if 'content-type' not in response.headers:
                 response.setHeader('content-type', self.content_type)
         except AttributeError:
             pass
@@ -225,26 +225,26 @@ class FSPageTemplate(FSObject, Script, PageTemplate):
 
     # Copy over more methods
     security.declareProtected(FTPAccess, 'manage_FTPget')
-    manage_FTPget = ZopePageTemplate.manage_FTPget.im_func
+    manage_FTPget = ZopePageTemplate.manage_FTPget.__func__
 
     security.declareProtected(View, 'get_size')
-    get_size = ZopePageTemplate.get_size.im_func
+    get_size = ZopePageTemplate.get_size.__func__
     getSize = get_size
 
     security.declareProtected(ViewManagementScreens, 'PrincipiaSearchSource')
-    PrincipiaSearchSource = ZopePageTemplate.PrincipiaSearchSource.im_func
+    PrincipiaSearchSource = ZopePageTemplate.PrincipiaSearchSource.__func__
 
     security.declareProtected(ViewManagementScreens, 'document_src')
-    document_src = ZopePageTemplate.document_src.im_func
+    document_src = ZopePageTemplate.document_src.__func__
 
-    pt_getContext = ZopePageTemplate.pt_getContext.im_func
+    pt_getContext = ZopePageTemplate.pt_getContext.__func__
     def pt_getEngine(self):
         e = getEngine()
         # We replace provider implementation with one safe
         e.types['provider'] = ProviderExpression
         return e
 
-    ZScriptHTML_tryParams = ZopePageTemplate.ZScriptHTML_tryParams.im_func
+    ZScriptHTML_tryParams = ZopePageTemplate.ZScriptHTML_tryParams.__func__
 
     source_dot_xml = Src()
 

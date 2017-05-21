@@ -17,11 +17,11 @@ $Id: __init__.py 40391 2005-11-28 16:21:21Z yuppie $
 
 from sys import modules
 
-import DirectoryView, FSImage, FSFile, FSPropertiesObject
-import FSDTMLMethod, FSPythonScript
-import FSPageTemplate
-import FSZSQLMethod
-import utils
+from . import DirectoryView, FSImage, FSFile, FSPropertiesObject
+from . import FSDTMLMethod, FSPythonScript
+from . import FSPageTemplate
+from . import FSZSQLMethod
+from . import utils
 
 def initialize(context):
 

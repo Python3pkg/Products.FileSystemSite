@@ -74,10 +74,10 @@ class ExternalMethodExporter:
 
     fh = open(path.join(directory,id),'w')
 
-    print >> fh, '# external method'
-    print >> fh, ' title  : %s'%object.title
-    print >> fh, ' module : %s'%object._module
-    print >> fh, ' function : %s'%object._function
+    print('# external method', file=fh)
+    print(' title  : %s'%object.title, file=fh)
+    print(' module : %s'%object._module, file=fh)
+    print(' function : %s'%object._function, file=fh)
 
     fh.close()
     
@@ -105,7 +105,7 @@ class ImageExporter:
     else:
       while data is not None:
         fh.write(data.data)
-        data = data.next
+        data = data.__next__
 
 class SQLExporter:
 
@@ -163,20 +163,20 @@ export_directory = '/home/kapil/export'
 
 def recurse_export(container, directory):
 
-  print  
-  print
-  print 'exportinging', container.getId(), directory
+  print()  
+  print()
+  print('exportinging', container.getId(), directory)
   
-  objs = container.objectValues(meta_type_mapping.keys())
+  objs = container.objectValues(list(meta_type_mapping.keys()))
   
-  print len(objs)
+  print(len(objs))
   
   for o in objs:
-    print o.getId(), o.meta_type
+    print(o.getId(), o.meta_type)
     handler = meta_type_mapping.get(o.meta_type)
     handler.export(o, directory)
     
-  print    
+  print()    
 
   containers = container.objectValues('Folder')
   for c in containers:

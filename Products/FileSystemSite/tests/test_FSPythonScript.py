@@ -8,7 +8,7 @@ Zope2.startup()
 
 from os.path import join
 from sys import exc_info
-from thread import start_new_thread
+from _thread import start_new_thread
 from time import sleep
 
 from OFS.Folder import Folder

@@ -23,15 +23,15 @@ from AccessControl.Role import RoleManager
 from OFS.Cache import Cacheable
 from OFS.DTMLMethod import DTMLMethod, decapitate, guess_content_type
 
-from DirectoryView import registerFileExtension
-from DirectoryView import registerMetaType
-from FSObject import FSObject
-from Permissions import FTPAccess
-from Permissions import View
-from Permissions import ViewManagementScreens
-from utils import _dtmldir
-from utils import _setCacheHeaders, _checkConditionalGET
-from utils import expandpath
+from .DirectoryView import registerFileExtension
+from .DirectoryView import registerMetaType
+from .FSObject import FSObject
+from .Permissions import FTPAccess
+from .Permissions import View
+from .Permissions import ViewManagementScreens
+from .utils import _dtmldir
+from .utils import _setCacheHeaders, _checkConditionalGET
+from .utils import expandpath
 
 
 _marker = []  # Create a new marker object.
@@ -103,7 +103,7 @@ class FSDTMLMethod(RestrictedDTML, RoleManager, FSObject, HTML):
     index_html=None # Prevent accidental acquisition
 
     # Documents masquerade as functions:
-    func_code = DTMLMethod.func_code
+    func_code = DTMLMethod.__code__
 
     default_content_type = 'text/html'
 
@@ -140,7 +140,7 @@ class FSDTMLMethod(RestrictedDTML, RoleManager, FSObject, HTML):
                     self.ZCacheable_set(result)
                 return result
 
-            if not isinstance(r, basestring) or RESPONSE is None:
+            if not isinstance(r, str) or RESPONSE is None:
                 if not self._cache_namespace_keys:
                     self.ZCacheable_set(r)
                 return r
@@ -149,7 +149,7 @@ class FSDTMLMethod(RestrictedDTML, RoleManager, FSObject, HTML):
 
         have_key=RESPONSE.headers.has_key
         if not (have_key('content-type') or have_key('Content-Type')):
-            if self.__dict__.has_key('content_type'):
+            if 'content_type' in self.__dict__:
                 c=self.content_type
             else:
                 c, e=guess_content_type(self.getId(), r)
@@ -187,16 +187,16 @@ class FSDTMLMethod(RestrictedDTML, RoleManager, FSObject, HTML):
         return getSecurityManager().validate(inst, parent, name, value)
 
     security.declareProtected(FTPAccess, 'manage_FTPget')
-    manage_FTPget = DTMLMethod.manage_FTPget.im_func
+    manage_FTPget = DTMLMethod.manage_FTPget.__func__
 
     security.declareProtected(ViewManagementScreens, 'PrincipiaSearchSource')
-    PrincipiaSearchSource = DTMLMethod.PrincipiaSearchSource.im_func
+    PrincipiaSearchSource = DTMLMethod.PrincipiaSearchSource.__func__
 
     security.declareProtected(ViewManagementScreens, 'document_src')
-    document_src = DTMLMethod.document_src.im_func
+    document_src = DTMLMethod.document_src.__func__
 
     security.declareProtected(ViewManagementScreens, 'manage_haveProxy')
-    manage_haveProxy = DTMLMethod.manage_haveProxy.im_func
+    manage_haveProxy = DTMLMethod.manage_haveProxy.__func__
 
 InitializeClass(FSDTMLMethod)
 

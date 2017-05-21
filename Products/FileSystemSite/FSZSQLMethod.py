@@ -23,13 +23,13 @@ from Acquisition import ImplicitAcquisitionWrapper
 from Products.ZSQLMethods.SQL import SQL
 from zLOG import LOG, ERROR
 
-from DirectoryView import registerFileExtension
-from DirectoryView import registerMetaType
-from FSObject import FSObject
-from Permissions import View
-from Permissions import ViewManagementScreens
-from utils import _dtmldir
-from utils import expandpath
+from .DirectoryView import registerFileExtension
+from .DirectoryView import registerMetaType
+from .FSObject import FSObject
+from .Permissions import View
+from .Permissions import ViewManagementScreens
+from .utils import _dtmldir
+from .utils import expandpath
 
 
 class FSZSQLMethod(SQL, FSObject):
@@ -91,7 +91,7 @@ class FSZSQLMethod(SQL, FSObject):
         start = data.find('<dtml-comment>')
         end   = data.find('</dtml-comment>')
         if start==-1 or end==-1 or start>end:
-            raise ValueError,'Could not find parameter block'
+            raise ValueError('Could not find parameter block')
         block = data[start+14:end]
 
         for line in block.split('\n'):
@@ -104,8 +104,8 @@ class FSZSQLMethod(SQL, FSObject):
         try:
             connection_id =   ( parameters.get('connection id', '') or
                                 parameters['connection_id'] )
-        except KeyError,e:
-            raise ValueError,"The '%s' parameter is required but was not supplied" % e
+        except KeyError as e:
+            raise ValueError("The '%s' parameter is required but was not supplied" % e)
 
         # Optional parameters
         title =           parameters.get('title','')

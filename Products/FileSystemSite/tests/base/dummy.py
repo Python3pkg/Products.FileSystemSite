@@ -20,7 +20,7 @@ from OFS.SimpleItem import Item
 
 from Products.CMFCore.ActionProviderBase import ActionProviderBase
 from Products.CMFCore.PortalContent import PortalContent
-from security import OmnipotentUser
+from .security import OmnipotentUser
 
 from DateTime import DateTime
 from webdav.common import rfc1123_date

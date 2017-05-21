@@ -24,15 +24,15 @@ from OFS.Cache import Cacheable
 from OFS.Image import File
 from zope.contenttype import guess_content_type
 
-from DirectoryView import registerFileExtension
-from DirectoryView import registerMetaType
-from FSObject import FSObject
-from Permissions import FTPAccess
-from Permissions import View
-from Permissions import ViewManagementScreens
-from utils import _dtmldir
-from utils import _setCacheHeaders, _ViewEmulator
-from utils import expandpath, _FSCacheHeaders, _checkConditionalGET
+from .DirectoryView import registerFileExtension
+from .DirectoryView import registerMetaType
+from .FSObject import FSObject
+from .Permissions import FTPAccess
+from .Permissions import View
+from .Permissions import ViewManagementScreens
+from .utils import _dtmldir
+from .utils import _setCacheHeaders, _ViewEmulator
+from .utils import expandpath, _FSCacheHeaders, _checkConditionalGET
 
 
 class FSFile(FSObject):
@@ -70,13 +70,13 @@ class FSFile(FSObject):
 
         # Next, look at file headers
         headers=getattr(file, 'headers', None)
-        if headers and headers.has_key('content-type'):
+        if headers and 'content-type' in headers:
             content_type=headers['content-type']
         else:
             # Last resort: Use the (imperfect) content type guessing
             # mechanism from OFS.Image, which ultimately uses the
             # Python mimetypes module.
-            if not isinstance(body, basestring):
+            if not isinstance(body, str):
                 body = body.data
             content_type, enc=guess_content_type(
                 getattr(file, 'filename',id), body, content_type)

@@ -16,7 +16,7 @@ $Id: FSObject.py 37359 2005-07-21 13:58:23Z tiran $
 """
 
 from zope.interface import implements
-from interfaces import IFSObject
+from .interfaces import IFSObject
 
 from os import path, stat
 
@@ -35,11 +35,11 @@ from OFS.SimpleItem import Item
 from DateTime import DateTime
 from Products.PythonScripts.standard import html_quote
 
-from Permissions import ManagePortal
-from Permissions import View
-from Permissions import ViewManagementScreens
-from utils import expandpath
-from utils import getToolByName
+from .Permissions import ManagePortal
+from .Permissions import View
+from .Permissions import ViewManagementScreens
+from .utils import expandpath
+from .utils import getToolByName
 
 
 class FSObject(Implicit, Item, RoleManager, Cacheable):
@@ -152,7 +152,7 @@ class FSObject(Implicit, Item, RoleManager, Cacheable):
 
     def _createZODBClone(self):
         """Create a ZODB (editable) equivalent of this object."""
-        raise NotImplementedError, "This should be implemented in a subclass."
+        raise NotImplementedError("This should be implemented in a subclass.")
 
     def _readFile(self, reparse):
         """Read the data from the filesystem.
@@ -161,7 +161,7 @@ class FSObject(Implicit, Item, RoleManager, Cacheable):
         data if necessary.  'reparse' is set when reading the second
         time and beyond.
         """
-        raise NotImplementedError, "This should be implemented in a subclass."
+        raise NotImplementedError("This should be implemented in a subclass.")
 
     # Refresh our contents from the filesystem if that is newer and we are
     # running in debug mode.

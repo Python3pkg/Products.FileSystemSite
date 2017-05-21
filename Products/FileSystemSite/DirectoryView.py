@@ -34,15 +34,15 @@ from OFS.ObjectManager import bad_id
 from zLOG import LOG, ERROR
 from zope.interface import implements
 
-from FSMetadata import FSMetadata
-from FSObject import BadFile
-from interfaces import IDirectoryView
-from Permissions import AccessContentsInformation
-from Permissions import ManagePortal
-from utils import _dtmldir
-from utils import expandpath
-from utils import minimalpath
-from utils import normalize
+from .FSMetadata import FSMetadata
+from .FSObject import BadFile
+from .interfaces import IDirectoryView
+from .Permissions import AccessContentsInformation
+from .Permissions import ManagePortal
+from .utils import _dtmldir
+from .utils import expandpath
+from .utils import minimalpath
+from .utils import normalize
 
 __reload_module__ = 0
 
@@ -255,7 +255,7 @@ class DirectoryInformation:
                     # FS-based security
                     permissions = metadata.getSecurity()
                     if permissions is not None:
-                        for name in permissions.keys():
+                        for name in list(permissions.keys()):
                             acquire, roles = permissions[name]
                             try:
                                 ob.manage_permission(name,roles,acquire)
@@ -304,7 +304,7 @@ class DirectoryRegistry:
     def registerDirectory(self, name, _prefix, subdirs=1, ignore=ignore):
         # This what is actually called to register a
         # file system directory to become a FSDV.
-        if not isinstance(_prefix, basestring):
+        if not isinstance(_prefix, str):
             _prefix = package_home(_prefix)
         filepath = path.join(_prefix, name)
         self.registerDirectoryByPath(filepath, subdirs, ignore=ignore)
@@ -338,7 +338,7 @@ class DirectoryRegistry:
         return self._directories.get(minimal_fp, None)
 
     def listDirectories(self):
-        dirs = self._directories.keys()
+        dirs = list(self._directories.keys())
         dirs.sort()
         return dirs
 
@@ -533,7 +533,7 @@ def addDirectoryViews(ob, name, _prefix):
     still needs to be called by product initialization code to satisfy
     persistence demands.
     """
-    if not isinstance(_prefix, basestring):
+    if not isinstance(_prefix, str):
         _prefix = package_home(_prefix)
     filepath = path.join(_prefix, name)
     minimal_fp = minimalpath(filepath)

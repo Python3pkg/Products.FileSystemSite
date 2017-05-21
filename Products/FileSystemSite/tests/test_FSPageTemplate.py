@@ -96,8 +96,8 @@ class FSPageTemplateTests( RequestTest, FSPTMaker ):
         script = script.__of__(self.root)
         script()
         self.failUnless( len( self.RESPONSE.headers ) >= original_len + 2 )
-        self.failUnless( 'foo' in self.RESPONSE.headers.keys() )
-        self.failUnless( 'bar' in self.RESPONSE.headers.keys() )
+        self.failUnless( 'foo' in list(self.RESPONSE.headers.keys()) )
+        self.failUnless( 'bar' in list(self.RESPONSE.headers.keys()) )
 
     def test_pt_properties( self ):
 

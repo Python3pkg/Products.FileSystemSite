@@ -46,10 +46,11 @@ from OFS.PropertySheets import PropertySheets
 from OFS.SimpleItem import SimpleItem
 from Products.PageTemplates.Expressions import getEngine
 from Products.PageTemplates.Expressions import SecureModuleImporter
-from thread import allocate_lock
+from _thread import allocate_lock
 from webdav.common import rfc1123_date
-from exceptions import AccessControl_Unauthorized
-from exceptions import NotFound
+from .exceptions import AccessControl_Unauthorized
+from .exceptions import NotFound
+import collections
 
 security = ModuleSecurityInfo( 'Products.CMFCore.utils' )
 
@@ -78,7 +79,7 @@ def getToolByName(obj, name, default=_marker):
         return default
     else:
         if tool is _marker:
-            raise AttributeError, name
+            raise AttributeError(name)
         return tool
 
 security.declarePublic('cookString')
@@ -105,9 +106,9 @@ def tuplize( valueName, value ):
         return value
     if isinstance(value, list):
         return tuple( value )
-    if isinstance(value, basestring):
+    if isinstance(value, str):
         return tuple( value.split() )
-    raise ValueError, "%s of unsupported type" % valueName
+    raise ValueError("%s of unsupported type" % valueName)
 
 #
 #   Security utilities, callable only from unrestricted code.
@@ -209,7 +210,7 @@ def _FSCacheHeaders(obj):
         # of the way they parse it).
         try:
             mod_since=DateTime(header)
-            mod_since=long(mod_since.timeTime())
+            mod_since=int(mod_since.timeTime())
         except TypeError:
             mod_since=None
                
@@ -252,9 +253,9 @@ def _mergedLocalRoles(object):
     while 1:
         if hasattr(object, '__ac_local_roles__'):
             dict = object.__ac_local_roles__ or {}
-            if callable(dict): dict = dict()
-            for k, v in dict.items():
-                if merged.has_key(k):
+            if isinstance(dict, collections.Callable): dict = dict()
+            for k, v in list(dict.items()):
+                if k in merged:
                     merged[k] = merged[k] + v
                 else:
                     merged[k] = v
@@ -263,7 +264,7 @@ def _mergedLocalRoles(object):
             object=getattr(object, 'aq_inner', object)
             continue
         if hasattr(object, 'im_self'):
-            object=object.im_self
+            object=object.__self__
             object=getattr(object, 'aq_inner', object)
             continue
         break
@@ -285,7 +286,7 @@ def _ac_inherited_permissions(ob, all=0):
        if hasattr(ob, '_subobject_permissions'):
            for p in ob._subobject_permissions():
                pname=p[0]
-               if not d.has_key(pname):
+               if pname not in d:
                    d[pname]=1
                    r.append(p)
        r = list(perms) + r
@@ -300,14 +301,14 @@ def _modifyPermissionMappings(ob, map):
     # Needless to say, it's crude. :-(
     something_changed = 0
     perm_info = _ac_inherited_permissions(ob, 1)
-    for name, settings in map.items():
+    for name, settings in list(map.items()):
         cur_roles = rolesForPermissionOn(name, ob)
-        if isinstance(cur_roles, basestring):
+        if isinstance(cur_roles, str):
             cur_roles = [cur_roles]
         else:
             cur_roles = list(cur_roles)
         changed = 0
-        for (role, allow) in settings.items():
+        for (role, allow) in list(settings.items()):
             if not allow:
                 if role in cur_roles:
                     changed = 1
@@ -365,7 +366,7 @@ def parse_etags( text
 
     if value:
         result.append(value)
-    return apply(parse_etags,(text[l:],result))
+    return parse_etags(*(text[l:],result))
 
 
 def _checkConditionalGET(obj, extra_context):
@@ -412,7 +413,7 @@ def _checkConditionalGET(obj, extra_context):
 
     (content_mod_time, content_etag, set_last_modified_header) = ret
     if content_mod_time:
-        mod_time_secs = long(content_mod_time.timeTime())
+        mod_time_secs = int(content_mod_time.timeTime())
     else:
         mod_time_secs = None
     
@@ -426,7 +427,7 @@ def _checkConditionalGET(obj, extra_context):
         # understand the screwy date string as a lucky side effect
         # of the way they parse it).
         try:
-            if_modified_since=long(DateTime(if_modified_since).timeTime())
+            if_modified_since=int(DateTime(if_modified_since).timeTime())
         except:
             if_mod_since=None
                 
@@ -725,7 +726,7 @@ def initializeBasesPhase1(base_classes, module):
     for base_class in base_classes:
         d={}
         zclass_name = '_ZClass_for_%s' % base_class.__name__
-        exec 'class %s: pass' % zclass_name in d
+        exec('class %s: pass' % zclass_name, d)
         Z = d[ zclass_name ]
         Z.propertysheets = PropertySheets()
         Z._zclass_ = base_class
@@ -780,7 +781,7 @@ def keywordsplitter( headers
     out = []
     for head in names:
         keylist = splitter(headers.get(head, ''))
-        keylist = map(lambda x: x.strip(), keylist)
+        keylist = [x.strip() for x in keylist]
         out.extend( [key for key in keylist if key] )
     return out
 

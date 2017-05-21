@@ -23,12 +23,12 @@ from OFS.Folder import Folder
 from OFS.PropertyManager import PropertyManager
 from ZPublisher.Converters import get_converter
 
-from DirectoryView import registerFileExtension
-from DirectoryView import registerMetaType
-from FSObject import FSObject
-from Permissions import ViewManagementScreens
-from utils import _dtmldir
-from utils import expandpath
+from .DirectoryView import registerFileExtension
+from .DirectoryView import registerMetaType
+from .FSObject import FSObject
+from .Permissions import ViewManagementScreens
+from .utils import _dtmldir
+from .utils import expandpath
 
 
 class FSPropertiesObject (FSObject, PropertyManager):
@@ -128,8 +128,8 @@ class FSPropertiesObject (FSObject, PropertyManager):
                             'default_value':propvalue,
                             })
             except:
-                raise ValueError, ( 'Error processing line %s of %s:\n%s'
-                                  % (lino,fp,line) )
+                raise ValueError( 'Error processing line %s of %s:\n%s'
+                                  % (lino,fp,line))
         self._properties = tuple(map)
 
     if DevelopmentMode:

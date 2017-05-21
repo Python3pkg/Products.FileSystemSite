@@ -17,9 +17,9 @@ from Testing.makerequest import makerequest
 import zLOG
 import transaction
 
-from dummy import DummyFolder
-from security import AnonymousUser
-from security import PermissiveSecurityPolicy
+from .dummy import DummyFolder
+from .security import AnonymousUser
+from .security import PermissiveSecurityPolicy
 
 try:
     from zope.app.testing.placelesssetup import PlacelessSetup
@@ -91,7 +91,7 @@ class WarningInterceptor:
             return
 
         import sys
-        from StringIO import StringIO
+        from io import StringIO
 
         self._old_stderr = sys.stderr
         self._our_stderr_stream = sys.stderr = StringIO()

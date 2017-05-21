@@ -140,7 +140,7 @@ class FSImageTests( RequestTest, FSDVTest):
 
         import os
         from webdav.common import rfc1123_date
-        from base.dummy import FAKE_ETAG
+        from .base.dummy import FAKE_ETAG
         
         file = self._makeOne( 'test_file', 'test_image.gif' )
         file = file.__of__( self.root )
@@ -164,8 +164,8 @@ class FSImageTests( RequestTest, FSDVTest):
         image.index_html(self.REQUEST, self.RESPONSE)
         headers = self.RESPONSE.headers
         self.failUnless(len(headers) >= original_len + 3)
-        self.failUnless('foo' in headers.keys())
-        self.failUnless('bar' in headers.keys())
+        self.failUnless('foo' in list(headers.keys()))
+        self.failUnless('bar' in list(headers.keys()))
         self.assertEqual(headers['test_path'], '/test_image')
 
     def test_index_html_200_with_cpm( self ):
@@ -218,8 +218,8 @@ class FSImageTests( RequestTest, FSDVTest):
 
         headers = self.RESPONSE.headers
         self.failUnless(len(headers) >= original_len + 3)
-        self.failUnless('foo' in headers.keys())
-        self.failUnless('bar' in headers.keys())
+        self.failUnless('foo' in list(headers.keys()))
+        self.failUnless('bar' in list(headers.keys()))
         self.assertEqual(headers['test_path'], '/test_image')
 
 def test_suite():

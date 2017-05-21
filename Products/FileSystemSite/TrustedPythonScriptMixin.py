@@ -2,7 +2,7 @@
 # see "doc/TRUSTED_LICENSE.txt" for details
 #       $Id: TrustedPythonScriptMixin.py,v 1.1 2004/09/06 17:00:46 faassen Exp $
 '''Auxiliary mixin class to implement trusted PythonScripts.'''
-import __builtin__
+import builtins
 from operator import getitem
 
 from ExtensionClass import Base
@@ -12,12 +12,12 @@ from RestrictedPython.RCompile import RFunction, compileAndTuplize
 
 from Products.PythonScripts.PythonScript import PythonScript
 
-from ReuseUtils import rebindFunction
+from .ReuseUtils import rebindFunction
 
 
 class TrustedPythonScriptMixin(Base):
-  _newfun = rebindFunction(PythonScript._newfun.im_func,
-                           safe_builtins=__builtin__.__dict__,
+  _newfun = rebindFunction(PythonScript._newfun.__func__,
+                           safe_builtins=builtins.__dict__,
                            _getattr_=getattr,
                            _getitem_=getitem,
                            _write_=lambda ob:ob,

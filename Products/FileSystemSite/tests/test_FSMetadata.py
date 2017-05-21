@@ -6,7 +6,7 @@ except ImportError: # BBB: for Zope 2.7
     import Zope as Zope2
 Zope2.startup()
 
-from test_FSSecurity import FSSecurityBase
+from .test_FSSecurity import FSSecurityBase
 
 
 class FSMetadata(FSSecurityBase):

@@ -48,7 +48,7 @@ def has_path( catalog, path ):
     """
     if type( path ) is type( () ):
         path = '/'.join(path)
-    rids = map( lambda x: x.data_record_id_, catalog.searchResults() )
+    rids = [x.data_record_id_ for x in catalog.searchResults()]
     for rid in rids:
         if catalog.getpath( rid ) == path:
             return 1

@@ -152,7 +152,7 @@ class FSFileTests( RequestTest, FSDVTest):
 
         import os
         from webdav.common import rfc1123_date
-        from base.dummy import FAKE_ETAG
+        from .base.dummy import FAKE_ETAG
         
         file = self._makeOne( 'test_file', 'test_file.swf' )
         file = file.__of__( self.root )
@@ -201,8 +201,8 @@ class FSFileTests( RequestTest, FSDVTest):
         file.index_html(self.REQUEST, self.RESPONSE)
         headers = self.RESPONSE.headers
         self.failUnless(len(headers) >= original_len + 3)
-        self.failUnless('foo' in headers.keys())
-        self.failUnless('bar' in headers.keys())
+        self.failUnless('foo' in list(headers.keys()))
+        self.failUnless('bar' in list(headers.keys()))
         self.assertEqual(headers['test_path'], '/test_file')
 
     def test_forced_content_type( self ):

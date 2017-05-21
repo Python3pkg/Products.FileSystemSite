@@ -44,7 +44,7 @@ class PermissiveSecurityPolicy:
         if permission == 'forbidden permission':
             return 0
         roles = rolesForPermissionOn(permission, object)
-        if isinstance(roles, basestring):
+        if isinstance(roles, str):
             roles=[roles]
         return context.user.allowed(object, roles)
 

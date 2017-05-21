@@ -7,12 +7,12 @@ import Acquisition
 from AccessControl import ClassSecurityInfo, getSecurityManager
 from Products.ExternalMethod.ExternalMethod import ExternalMethod
 
-from utils import _dtmldir
-from Permissions import ViewManagementScreens, View, FTPAccess
-from DirectoryView import registerFileExtension, registerMetaType, expandpath
-from FSObject import FSObject
+from .utils import _dtmldir
+from .Permissions import ViewManagementScreens, View, FTPAccess
+from .DirectoryView import registerFileExtension, registerMetaType, expandpath
+from .FSObject import FSObject
 
-import Permissions
+from . import Permissions
 
 ## still need hookpoint for reloading metadata
 
@@ -43,7 +43,7 @@ class FSExternalMethod(FSObject, ExternalMethod):
             Create a ZODB (editable) equivalent of this object.
         """
         # XXX:  do this soon
-        raise NotImplemented, "not needed yet"
+        raise NotImplemented("not needed yet")
 
     def _readFile( self, reparse ):
 
@@ -64,7 +64,7 @@ class FSExternalMethod(FSObject, ExternalMethod):
         finally:
             file.close()
 
-        for k in parameters.keys():
+        for k in list(parameters.keys()):
             if k not in self.allowed_params:
                 del parameters[k]
         

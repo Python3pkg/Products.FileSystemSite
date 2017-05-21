@@ -8,7 +8,7 @@ CAUTION: Almost surely, you do not want to make this available.
 
 from Products.PythonScripts.PythonScript import PythonScript
 
-from TrustedPythonScriptMixin import TrustedPythonScriptMixin
+from .TrustedPythonScriptMixin import TrustedPythonScriptMixin
 
 class TrustedPythonScript(TrustedPythonScriptMixin, PythonScript):
   '''Python Script unrestriced by Zopes security.'''

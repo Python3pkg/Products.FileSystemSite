@@ -26,14 +26,14 @@ from OFS.Cache import Cacheable
 from Products.PythonScripts.PythonScript import PythonScript
 from Shared.DC.Scripts.Script import Script
 
-from DirectoryView import registerFileExtension
-from DirectoryView import registerMetaType
-from FSObject import FSObject
-from Permissions import FTPAccess
-from Permissions import View
-from Permissions import ViewManagementScreens
-from utils import _dtmldir
-from utils import expandpath
+from .DirectoryView import registerFileExtension
+from .DirectoryView import registerMetaType
+from .FSObject import FSObject
+from .Permissions import FTPAccess
+from .Permissions import View
+from .Permissions import ViewManagementScreens
+from .utils import _dtmldir
+from .utils import expandpath
 
 _marker = []
 
@@ -139,7 +139,7 @@ class FSPythonScript (FSObject, Script):
             # The script has errors.
             __traceback_supplement__ = (
                 FSPythonScriptTracebackSupplement, self, 0)
-            raise RuntimeError, '%s has errors.' % self._filepath
+            raise RuntimeError('%s has errors.' % self._filepath)
 
         # Updating func_globals directly is not thread safe here.
         # In normal PythonScripts, every thread has its own
@@ -207,7 +207,7 @@ class FSPythonScript (FSObject, Script):
     def params(self): return self._params
 
     security.declareProtected(ViewManagementScreens, 'manage_haveProxy')
-    manage_haveProxy = PythonScript.manage_haveProxy.im_func
+    manage_haveProxy = PythonScript.manage_haveProxy.__func__
 
     security.declareProtected(ViewManagementScreens, 'body')
     def body(self): return self._body
@@ -233,13 +233,13 @@ class FSPythonScript (FSObject, Script):
             ps._makeFunction()
             self._v_ft= f = ps._v_ft
             if f is not None:
-                self.func_code = ps.func_code
-                self.func_defaults = ps.func_defaults
+                self.__code__ = ps.__code__
+                self.__defaults__ = ps.__defaults__
             else:
                 # There were errors in the compile.
                 # No signature.
-                self.func_code = bad_func_code()
-                self.func_defaults = None
+                self.__code__ = bad_func_code()
+                self.__defaults__ = None
         self._body = ps._body
         self._params = ps._params
         self.title = ps.title
